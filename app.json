@@ -52,6 +52,6 @@
       "codeSigningMetadata": "<UNKNOWN>",
       "assetPatternsToBeBundled": [],
       "disableAntiBrickingMeasures": false
-    },
+    }
   }
 }
