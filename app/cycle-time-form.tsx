@@ -157,7 +157,7 @@ export default function CycleTimeFormScreen() {
           />
 
           <Picker
-            label="Máquina Empacadora"
+            label="Recurso Monitoreado"
             value={formData.packingMachine}
             options={packingMachineOptions}
             onSelect={(value) => setFormData(prev => ({ ...prev, packingMachine: value }))}

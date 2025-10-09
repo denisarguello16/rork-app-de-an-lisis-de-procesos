@@ -25,6 +25,13 @@ export const PACKING_MACHINES = [
   'ULMA 1',
   'ULMA 2',
   'VS-95',
+  'Sierra 1',
+  'Sierra 2',
+  'Sierra 3',
+  'Indicador 30',
+  'Indicador 40',
+  'Indicador 70',
+  'Indicador 80',
 ] as const;
 
 export type PackingMachine = typeof PACKING_MACHINES[number];
