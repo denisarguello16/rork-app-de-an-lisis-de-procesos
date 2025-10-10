@@ -22,7 +22,8 @@ const REJECTION_CAUSES = [
   'Incumplimiento de Rango de Peso',
   'Presencia de Pelo',
   'Presencia de Trauma',
-  'Presencia de Cartílago'
+  'Presencia de Cartílago',
+  'Film con Tape Rojo'
 ];
 
 const PACKAGE_SIZES = [
