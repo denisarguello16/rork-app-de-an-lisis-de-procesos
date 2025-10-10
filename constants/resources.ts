@@ -22,8 +22,8 @@ export const RESOURCES: Resource[] = [
 
 export const PACKING_MACHINES = [
   'Multivac R-105',
-  'ULMA 1',
-  'ULMA 2',
+  'ULMA 1 (Central)',
+  'ULMA 2 (Izquierda)',
   'VS-95',
   'Sierra 1',
   'Sierra 2',
