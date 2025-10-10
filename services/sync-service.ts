@@ -32,8 +32,10 @@ class SyncService {
   private static instance: SyncService;
   private pendingSyncKey = 'pending-sync-items';
   private syncStatusKey = 'sync-status';
-  private maxRetries = 3;
+  private maxRetries = 5;
   private syncInProgress = false;
+  private backoffMultiplier = 2;
+  private baseDelay = 1000;
 
   static getInstance(): SyncService {
     if (!SyncService.instance) {
@@ -82,15 +84,14 @@ class SyncService {
       const existingItems = await this.getPendingSyncItems();
       
       const newItem: PendingSyncItem = {
-        id: data.id,
+        id: String(data.id),
         type,
         data,
         timestamp: getNicaraguaTime().toISOString(),
         attempts: 0
       };
 
-      // Remove any existing item with the same ID to avoid duplicates
-      const filteredItems = existingItems.filter(item => item.id !== data.id);
+      const filteredItems = existingItems.filter(item => item.id !== String(data.id));
       const updatedItems = [...filteredItems, newItem];
 
       await storage.setItem(this.pendingSyncKey, JSON.stringify(updatedItems));
@@ -162,12 +163,11 @@ class SyncService {
     }
   }
 
-  // Remove item from pending sync queue
-  async removeFromPendingSync(id: string): Promise<void> {
+  async removeFromPendingSync(id: string | number): Promise<void> {
     try {
       const storage = this.getStorage();
       const existingItems = await this.getPendingSyncItems();
-      const filteredItems = existingItems.filter(item => item.id !== id);
+      const filteredItems = existingItems.filter(item => item.id !== String(id));
       await storage.setItem(this.pendingSyncKey, JSON.stringify(filteredItems));
     } catch (error) {
       console.error('Error removing item from pending sync:', error);
@@ -299,7 +299,11 @@ class SyncService {
             console.error(`❌ Unknown sync type: ${item.type}`);
             return false;
         }
-      } catch (syncError) {
+      } catch (syncError: any) {
+        if (syncError?.message === 'RATE_LIMIT_EXCEEDED') {
+          console.warn(`⚠️ Rate limit hit for ${item.type}, will retry later`);
+          return false;
+        }
         console.error(`❌ Error calling sync function for ${item.type}:`, syncError);
         return false;
       }
@@ -328,7 +332,6 @@ class SyncService {
         });
       }, 2000);
       
-      // Set up periodic sync every 30 seconds
       setInterval(async () => {
         try {
           const pendingItems = await this.getPendingSyncItems();
@@ -341,7 +344,7 @@ class SyncService {
         } catch (error) {
           console.error('❌ Error in periodic sync:', error);
         }
-      }, 30000);
+      }, 60000);
     } catch (error) {
       console.error('❌ Error starting auto sync:', error);
     }
@@ -404,7 +407,6 @@ class SyncService {
             synced++;
           } else {
             failed++;
-            // Increment attempt count
             try {
               item.attempts++;
               const storage = this.getStorage();
@@ -416,8 +418,8 @@ class SyncService {
             }
           }
 
-          // Small delay between syncs to be nice to the server
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const delay = this.baseDelay * Math.pow(this.backoffMultiplier, item.attempts);
+          await new Promise(resolve => setTimeout(resolve, Math.min(delay, 30000)));
         } catch (itemError) {
           console.error(`❌ Error processing item ${item.id}:`, itemError);
           failed++;

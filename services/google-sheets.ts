@@ -1,15 +1,79 @@
 import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData, CycleTimeData } from '@/types/production';
 import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 
-// Google Sheets configuration
-// IMPORTANTE: Debes reemplazar estos valores con los tuyos
 const GOOGLE_SHEETS_CONFIG = {
-  // Reemplaza con la URL de tu Google Apps Script web app
-  // Ejemplo: 'https://script.google.com/macros/s/AKfycbxPH25gA2xxHNxjU3wjzlFIEL-p9Nz6WdHKo8MPtjmhF6vd9YcKrrpNmxIdPagapZgPmA/exec'
   API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzbSbXR0igAgd-JgQQERb3eE3KrHaP40mNkptkOrUZU5BXd2653mob95omw8YYlz1M3/exec',
-  // Solo el ID de la hoja, no la URL completahttps
   SHEET_ID: '1kwnCBSwNL6qWuXVKfj2LLKKeM3uxNQIZZ3VWAYCdmLI'
 };
+
+class RateLimiter {
+  private queue: Array<() => Promise<any>> = [];
+  private processing = false;
+  private lastRequestTime = 0;
+  private minDelay = 2000;
+  private requestCount = 0;
+  private windowStart = Date.now();
+  private maxRequestsPerMinute = 20;
+
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const now = Date.now();
+          
+          if (now - this.windowStart > 60000) {
+            this.requestCount = 0;
+            this.windowStart = now;
+          }
+          
+          if (this.requestCount >= this.maxRequestsPerMinute) {
+            const waitTime = 60000 - (now - this.windowStart);
+            console.log(`⏳ Rate limit reached, waiting ${Math.ceil(waitTime / 1000)}s`);
+            await new Promise(r => setTimeout(r, waitTime));
+            this.requestCount = 0;
+            this.windowStart = Date.now();
+          }
+          
+          const timeSinceLastRequest = now - this.lastRequestTime;
+          if (timeSinceLastRequest < this.minDelay) {
+            await new Promise(r => setTimeout(r, this.minDelay - timeSinceLastRequest));
+          }
+          
+          this.lastRequestTime = Date.now();
+          this.requestCount++;
+          
+          const result = await fn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      this.processQueue();
+    });
+  }
+
+  private async processQueue() {
+    if (this.processing || this.queue.length === 0) return;
+    
+    this.processing = true;
+    
+    while (this.queue.length > 0) {
+      const task = this.queue.shift();
+      if (task) {
+        try {
+          await task();
+        } catch (error) {
+          console.error('❌ Queue task error:', error);
+        }
+      }
+    }
+    
+    this.processing = false;
+  }
+}
+
+const rateLimiter = new RateLimiter();
 
 // Check if Google Sheets is properly configured
 export const isGoogleSheetsConfigured = (): boolean => {
@@ -51,18 +115,19 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
       }
     };
 
-    // Add timeout and better error handling
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(testPayload),
-      signal: controller.signal
-    });
+    const response = await rateLimiter.execute(() => 
+      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload),
+        signal: controller.signal
+      })
+    );
 
     clearTimeout(timeoutId);
 
@@ -170,25 +235,31 @@ export const saveRejectionDataToSheets = async (data: RejectionData): Promise<Go
       }
     };
 
-    // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+    const response = await rateLimiter.execute(() => 
+      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      })
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        throw new Error('RATE_LIMIT_EXCEEDED');
+      }
+      
       console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
@@ -269,25 +340,31 @@ export const saveWIPDataToSheets = async (data: WIPData): Promise<GoogleSheetsRe
       }
     };
 
-    // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+    const response = await rateLimiter.execute(() => 
+      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      })
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        throw new Error('RATE_LIMIT_EXCEEDED');
+      }
+      
       console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
@@ -445,25 +522,31 @@ export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<Go
       }
     };
 
-    // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+    const response = await rateLimiter.execute(() => 
+      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      })
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        throw new Error('RATE_LIMIT_EXCEEDED');
+      }
+      
       console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
