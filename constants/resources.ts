@@ -18,10 +18,10 @@ export const RESOURCES: Resource[] = [
   { type: 'Etiquetado', name: 'Indicador 40' },
   { type: 'Etiquetado', name: 'Indicador 70' },
   { type: 'Etiquetado', name: 'Indicador 80' },
-  { type: 'Etiquetado', name: 'E.I - Indicador 30' },
-  { type: 'Etiquetado', name: 'E.I - Indicador 40' },
-  { type: 'Etiquetado', name: 'E.I - Indicador 70' },
-  { type: 'Etiquetado', name: 'E.I - Indicador 80' },
+  { type: 'Etiquetado', name: 'P.Ind - Indicador 30' },
+  { type: 'Etiquetado', name: 'P.Ind - Indicador 40' },
+  { type: 'Etiquetado', name: 'P.Ind - Indicador 70' },
+  { type: 'Etiquetado', name: 'P.Ind - Indicador 80' },
   { type: 'Flejadora', name: 'Flejadora 1' },
 ];
 
