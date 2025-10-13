@@ -1,21 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData } from '@/types/production';
 import { 
   saveCapacityDataToSheets, 
   saveUtilizationDataToSheets, 
   saveRejectionDataToSheets, 
   saveWIPDataToSheets, 
   saveSetupTimeDataToSheets,
-  saveCycleTimeDataToSheets,
   testGoogleSheetsConnection
 } from './google-sheets';
 import { getNicaraguaTime } from '@/constants/timezone';
 
 interface PendingSyncItem {
   id: string;
-  type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup' | 'cycletime';
-  data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData | CycleTimeData;
+  type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup';
+  data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData;
   timestamp: string;
   attempts: number;
 }
@@ -32,10 +31,8 @@ class SyncService {
   private static instance: SyncService;
   private pendingSyncKey = 'pending-sync-items';
   private syncStatusKey = 'sync-status';
-  private maxRetries = 5;
+  private maxRetries = 3;
   private syncInProgress = false;
-  private backoffMultiplier = 2;
-  private baseDelay = 1000;
 
   static getInstance(): SyncService {
     if (!SyncService.instance) {
@@ -76,22 +73,23 @@ class SyncService {
 
   // Add item to pending sync queue
   async addToPendingSync(
-    type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup' | 'cycletime',
-    data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData | CycleTimeData
+    type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup',
+    data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData
   ): Promise<void> {
     try {
       const storage = this.getStorage();
       const existingItems = await this.getPendingSyncItems();
       
       const newItem: PendingSyncItem = {
-        id: String(data.id),
+        id: data.id,
         type,
         data,
         timestamp: getNicaraguaTime().toISOString(),
         attempts: 0
       };
 
-      const filteredItems = existingItems.filter(item => item.id !== String(data.id));
+      // Remove any existing item with the same ID to avoid duplicates
+      const filteredItems = existingItems.filter(item => item.id !== data.id);
       const updatedItems = [...filteredItems, newItem];
 
       await storage.setItem(this.pendingSyncKey, JSON.stringify(updatedItems));
@@ -129,45 +127,29 @@ class SyncService {
         return [];
       }
       
-      // Safely parse items with error handling for each item
-      const validItems: PendingSyncItem[] = [];
-      for (const item of items) {
-        try {
-          if (!item || !item.data || !item.id || !item.type) {
-            console.warn('⚠️ Skipping invalid item:', item);
-            continue;
-          }
-          
-          validItems.push({
-            ...item,
-            data: {
-              ...item.data,
-              timestamp: new Date(item.data.timestamp)
-            }
-          });
-        } catch (itemError) {
-          console.error('❌ Error parsing item:', itemError, item);
+      return items.map(item => ({
+        ...item,
+        data: {
+          ...item.data,
+          timestamp: new Date(item.data.timestamp)
         }
-      }
-      
-      return validItems;
+      }));
     } catch (error) {
-      console.error('❌ Error getting pending sync items:', error);
+      console.error('Error getting pending sync items:', error);
       try {
         const storage = this.getStorage();
         await storage.removeItem(this.pendingSyncKey);
-      } catch (removeError) {
-        console.error('❌ Error removing corrupted sync data:', removeError);
-      }
+      } catch {}
       return [];
     }
   }
 
-  async removeFromPendingSync(id: string | number): Promise<void> {
+  // Remove item from pending sync queue
+  async removeFromPendingSync(id: string): Promise<void> {
     try {
       const storage = this.getStorage();
       const existingItems = await this.getPendingSyncItems();
-      const filteredItems = existingItems.filter(item => item.id !== String(id));
+      const filteredItems = existingItems.filter(item => item.id !== id);
       await storage.setItem(this.pendingSyncKey, JSON.stringify(filteredItems));
     } catch (error) {
       console.error('Error removing item from pending sync:', error);
@@ -266,54 +248,31 @@ class SyncService {
   // Sync a single item
   private async syncItem(item: PendingSyncItem): Promise<boolean> {
     try {
-      console.log(`🔄 Syncing ${item.type} item:`, item.id);
-      
-      // Validate item data before syncing
-      if (!item || !item.data || !item.type) {
-        console.error('❌ Invalid item data:', item);
-        return false;
-      }
-
       let result;
-      try {
-        switch (item.type) {
-          case 'capacity':
-            result = await saveCapacityDataToSheets(item.data as CapacityData);
-            break;
-          case 'utilization':
-            result = await saveUtilizationDataToSheets(item.data as UtilizationData);
-            break;
-          case 'rejection':
-            result = await saveRejectionDataToSheets(item.data as RejectionData);
-            break;
-          case 'wip':
-            result = await saveWIPDataToSheets(item.data as WIPData);
-            break;
-          case 'setup':
-            result = await saveSetupTimeDataToSheets(item.data as SetupTimeData);
-            break;
-          case 'cycletime':
-            result = await saveCycleTimeDataToSheets(item.data as CycleTimeData);
-            break;
-          default:
-            console.error(`❌ Unknown sync type: ${item.type}`);
-            return false;
-        }
-      } catch (syncError: any) {
-        if (syncError?.message === 'RATE_LIMIT_EXCEEDED') {
-          console.warn(`⚠️ Rate limit hit for ${item.type}, will retry later`);
-          return false;
-        }
-        console.error(`❌ Error calling sync function for ${item.type}:`, syncError);
-        return false;
+      switch (item.type) {
+        case 'capacity':
+          result = await saveCapacityDataToSheets(item.data as CapacityData);
+          break;
+        case 'utilization':
+          result = await saveUtilizationDataToSheets(item.data as UtilizationData);
+          break;
+        case 'rejection':
+          result = await saveRejectionDataToSheets(item.data as RejectionData);
+          break;
+        case 'wip':
+          result = await saveWIPDataToSheets(item.data as WIPData);
+          break;
+        case 'setup':
+          result = await saveSetupTimeDataToSheets(item.data as SetupTimeData);
+          break;
+        default:
+          throw new Error(`Unknown sync type: ${item.type}`);
       }
 
-      if (result && result.success) {
-        console.log(`✅ Successfully synced ${item.type} item:`, item.id);
+      if (result.success) {
         await this.removeFromPendingSync(item.id);
         return true;
       } else {
-        console.warn(`⚠️ Sync failed for ${item.type} item:`, item.id, result?.error);
         return false;
       }
     } catch (error) {
@@ -324,57 +283,40 @@ class SyncService {
 
   // Start automatic sync when connection is detected
   async startAutoSync(): Promise<void> {
-    try {
-      // Initial sync attempt with delay to allow app to fully initialize
-      setTimeout(() => {
-        this.syncPendingItems().catch(err => {
-          console.error('❌ Error in initial sync:', err);
-        });
-      }, 2000);
-      
-      setInterval(async () => {
-        try {
-          const pendingItems = await this.getPendingSyncItems();
-          if (pendingItems.length > 0) {
-            const isOnline = await this.checkConnectivity();
-            if (isOnline && !this.syncInProgress) {
-              await this.syncPendingItems();
-            }
-          }
-        } catch (error) {
-          console.error('❌ Error in periodic sync:', error);
+    // Initial sync attempt
+    this.syncPendingItems();
+    
+    // Set up periodic sync every 30 seconds
+    setInterval(async () => {
+      const pendingItems = await this.getPendingSyncItems();
+      if (pendingItems.length > 0) {
+        const isOnline = await this.checkConnectivity();
+        if (isOnline && !this.syncInProgress) {
+          this.syncPendingItems();
         }
-      }, 60000);
-    } catch (error) {
-      console.error('❌ Error starting auto sync:', error);
-    }
+      }
+    }, 30000); // 30 seconds
   }
 
   // Sync all pending items
   async syncPendingItems(): Promise<{ success: boolean; synced: number; failed: number; error?: string }> {
     if (this.syncInProgress) {
-      console.log('⏸️ Sync already in progress, skipping');
       return { success: false, synced: 0, failed: 0, error: 'Sync already in progress' };
     }
 
     this.syncInProgress = true;
-    console.log('🔄 Starting sync process...');
     
     try {
       await this.updateSyncStatus({ isSyncing: true, lastSyncError: null });
 
       // Check connectivity first
-      console.log('📡 Checking connectivity...');
       const isOnline = await this.checkConnectivity();
       if (!isOnline) {
-        console.log('❌ No internet connection');
         await this.updateSyncStatus({ isSyncing: false, lastSyncError: 'No internet connection' });
         return { success: false, synced: 0, failed: 0, error: 'No internet connection' };
       }
-      console.log('✅ Connection available');
 
       const pendingItems = await this.getPendingSyncItems();
-      console.log(`📦 Found ${pendingItems.length} pending items`);
 
       if (pendingItems.length === 0) {
         await this.updateSyncStatus({ 
@@ -382,7 +324,6 @@ class SyncService {
           pendingCount: 0,
           lastSyncTime: getNicaraguaTime()
         });
-        console.log('✅ No items to sync');
         return { success: true, synced: 0, failed: 0 };
       }
 
@@ -390,43 +331,29 @@ class SyncService {
       let failed = 0;
 
       // Sync items one by one to avoid overwhelming the server
-      for (let i = 0; i < pendingItems.length; i++) {
-        const item = pendingItems[i];
-        console.log(`🔄 Processing item ${i + 1}/${pendingItems.length}`);
-        
-        try {
-          // Skip items that have exceeded max retries
-          if (item.attempts >= this.maxRetries) {
-            console.warn(`⚠️ Item ${item.id} exceeded max retries (${item.attempts}/${this.maxRetries})`);
-            failed++;
-            continue;
-          }
-
-          const success = await this.syncItem(item);
-          if (success) {
-            synced++;
-          } else {
-            failed++;
-            try {
-              item.attempts++;
-              const storage = this.getStorage();
-              const allItems = await this.getPendingSyncItems();
-              const updatedItems = allItems.map(i => i.id === item.id ? { ...item, attempts: item.attempts } : i);
-              await storage.setItem(this.pendingSyncKey, JSON.stringify(updatedItems));
-            } catch (updateError) {
-              console.error('❌ Error updating attempt count:', updateError);
-            }
-          }
-
-          const delay = this.baseDelay * Math.pow(this.backoffMultiplier, item.attempts);
-          await new Promise(resolve => setTimeout(resolve, Math.min(delay, 30000)));
-        } catch (itemError) {
-          console.error(`❌ Error processing item ${item.id}:`, itemError);
+      for (const item of pendingItems) {
+        // Skip items that have exceeded max retries
+        if (item.attempts >= this.maxRetries) {
           failed++;
+          continue;
         }
-      }
 
-      console.log(`✅ Sync complete: ${synced} synced, ${failed} failed`);
+        const success = await this.syncItem(item);
+        if (success) {
+          synced++;
+        } else {
+          failed++;
+          // Increment attempt count
+          item.attempts++;
+          const storage = this.getStorage();
+          const allItems = await this.getPendingSyncItems();
+          const updatedItems = allItems.map(i => i.id === item.id ? item : i);
+          await storage.setItem(this.pendingSyncKey, JSON.stringify(updatedItems));
+        }
+
+        // Small delay between syncs to be nice to the server
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
 
       const remainingItems = await this.getPendingSyncItems();
       const finalStatus: Partial<SyncStatus> = {
@@ -439,8 +366,6 @@ class SyncService {
         finalStatus.lastSyncError = `Failed to sync ${failed} items`;
       } else if (failed > 0) {
         finalStatus.lastSyncError = `Partially successful: ${synced} synced, ${failed} failed`;
-      } else {
-        finalStatus.lastSyncError = null;
       }
 
       await this.updateSyncStatus(finalStatus);
@@ -449,14 +374,10 @@ class SyncService {
 
     } catch (error) {
       console.error('❌ Sync process error:', error);
-      try {
-        await this.updateSyncStatus({ 
-          isSyncing: false, 
-          lastSyncError: error instanceof Error ? error.message : 'Unknown sync error'
-        });
-      } catch (statusError) {
-        console.error('❌ Error updating sync status:', statusError);
-      }
+      await this.updateSyncStatus({ 
+        isSyncing: false, 
+        lastSyncError: error instanceof Error ? error.message : 'Unknown sync error'
+      });
       return { 
         success: false, 
         synced: 0, 
@@ -465,7 +386,6 @@ class SyncService {
       };
     } finally {
       this.syncInProgress = false;
-      console.log('🏁 Sync process finished');
     }
   }
 

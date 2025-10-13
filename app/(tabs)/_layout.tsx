@@ -71,12 +71,6 @@ function RootLayoutNav() {
           tabBarIcon: ({ color }) => <AlertTriangle color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="cycle-time-records"
-        options={{
-          href: null,
-        }}
-      />
 
     </Tabs>
   );

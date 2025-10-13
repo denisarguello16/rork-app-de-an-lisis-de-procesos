@@ -1,79 +1,15 @@
-import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData } from '@/types/production';
 import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 
+// Google Sheets configuration
+// IMPORTANTE: Debes reemplazar estos valores con los tuyos
 const GOOGLE_SHEETS_CONFIG = {
-  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzbSbXR0igAgd-JgQQERb3eE3KrHaP40mNkptkOrUZU5BXd2653mob95omw8YYlz1M3/exec',
+  // Reemplaza con la URL de tu Google Apps Script web app
+  // Ejemplo: 'https://script.google.com/macros/s/AKfycbxPH25gA2xxHNxjU3wjzlFIEL-p9Nz6WdHKo8MPtjmhF6vd9YcKrrpNmxIdPagapZgPmA/exec'
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbz3cvPWeoG4EHOAafUsRnq9iv3jSBvK99z8FhauhS36DRSA2Y_WAflcWKi_pL9OVvPn/exec',
+  // Solo el ID de la hoja, no la URL completahttps
   SHEET_ID: '1kwnCBSwNL6qWuXVKfj2LLKKeM3uxNQIZZ3VWAYCdmLI'
 };
-
-class RateLimiter {
-  private queue: Array<() => Promise<any>> = [];
-  private processing = false;
-  private lastRequestTime = 0;
-  private minDelay = 2000;
-  private requestCount = 0;
-  private windowStart = Date.now();
-  private maxRequestsPerMinute = 20;
-
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.queue.push(async () => {
-        try {
-          const now = Date.now();
-          
-          if (now - this.windowStart > 60000) {
-            this.requestCount = 0;
-            this.windowStart = now;
-          }
-          
-          if (this.requestCount >= this.maxRequestsPerMinute) {
-            const waitTime = 60000 - (now - this.windowStart);
-            console.log(`⏳ Rate limit reached, waiting ${Math.ceil(waitTime / 1000)}s`);
-            await new Promise(r => setTimeout(r, waitTime));
-            this.requestCount = 0;
-            this.windowStart = Date.now();
-          }
-          
-          const timeSinceLastRequest = now - this.lastRequestTime;
-          if (timeSinceLastRequest < this.minDelay) {
-            await new Promise(r => setTimeout(r, this.minDelay - timeSinceLastRequest));
-          }
-          
-          this.lastRequestTime = Date.now();
-          this.requestCount++;
-          
-          const result = await fn();
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      });
-      
-      this.processQueue();
-    });
-  }
-
-  private async processQueue() {
-    if (this.processing || this.queue.length === 0) return;
-    
-    this.processing = true;
-    
-    while (this.queue.length > 0) {
-      const task = this.queue.shift();
-      if (task) {
-        try {
-          await task();
-        } catch (error) {
-          console.error('❌ Queue task error:', error);
-        }
-      }
-    }
-    
-    this.processing = false;
-  }
-}
-
-const rateLimiter = new RateLimiter();
 
 // Check if Google Sheets is properly configured
 export const isGoogleSheetsConfigured = (): boolean => {
@@ -115,19 +51,18 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
       }
     };
 
+    // Add timeout and better error handling
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
-    const response = await rateLimiter.execute(() => 
-      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testPayload),
-        signal: controller.signal
-      })
-    );
+    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(testPayload),
+      signal: controller.signal
+    });
 
     clearTimeout(timeoutId);
 
@@ -165,6 +100,8 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
       };
     }
   } catch (error) {
+    console.error('❌ Error en diagnóstico:', error);
+    
     // Handle specific error types with better user messages
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
@@ -235,31 +172,25 @@ export const saveRejectionDataToSheets = async (data: RejectionData): Promise<Go
       }
     };
 
+    // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-    const response = await rateLimiter.execute(() => 
-      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      })
-    );
+    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        throw new Error('RATE_LIMIT_EXCEEDED');
-      }
-      
       console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
     }
 
     const responseText = await response.text();
@@ -340,103 +271,9 @@ export const saveWIPDataToSheets = async (data: WIPData): Promise<GoogleSheetsRe
       }
     };
 
+    // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const response = await rateLimiter.execute(() => 
-      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      })
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        throw new Error('RATE_LIMIT_EXCEEDED');
-      }
-      
-      console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    
-    // Check if response is HTML (indicates wrong URL or deployment issue)
-    if (responseText.trim().startsWith('<')) {
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch (parseError) {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    // Handle different types of errors with user-friendly messages
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
-};
-
-// Function to save Cycle Time data to Google Sheets
-export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<GoogleSheetsResponse> => {
-  if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
-  }
-
-  try {
-    const payload = {
-      type: 'cycletime',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        productName: data.productName,
-        packingMachine: data.packingMachine,
-        cycleTime: data.cycleTime,
-        observations: data.observations
-      }
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
     const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
       method: 'POST',
@@ -457,6 +294,7 @@ export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<Go
 
     const responseText = await response.text();
     
+    // Check if response is HTML (indicates wrong URL or deployment issue)
     if (responseText.trim().startsWith('<')) {
       throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
     }
@@ -470,6 +308,7 @@ export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<Go
   } catch (error) {
     console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
     
+    // Handle different types of errors with user-friendly messages
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         return {
@@ -522,31 +361,25 @@ export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<Go
       }
     };
 
+    // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-    const response = await rateLimiter.execute(() => 
-      fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      })
-    );
+    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        throw new Error('RATE_LIMIT_EXCEEDED');
-      }
-      
       console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
     }
 
     const responseText = await response.text();
@@ -595,7 +428,7 @@ export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<Go
 };
 
 // Function to save data with fallback to local storage
-export const saveDataWithFallback = async (data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData | CycleTimeData, type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup' | 'cycletime'): Promise<GoogleSheetsResponse> => {
+export const saveDataWithFallback = async (data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData, type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup'): Promise<GoogleSheetsResponse> => {
   try {
     // Try to save to Google Sheets first
     const result = type === 'capacity' 
@@ -606,8 +439,6 @@ export const saveDataWithFallback = async (data: CapacityData | UtilizationData 
       ? await saveRejectionDataToSheets(data as RejectionData)
       : type === 'wip'
       ? await saveWIPDataToSheets(data as WIPData)
-      : type === 'cycletime'
-      ? await saveCycleTimeDataToSheets(data as CycleTimeData)
       : await saveSetupTimeDataToSheets(data as SetupTimeData);
     
     if (result.success) {

@@ -1,14 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-
-
 import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ProductionProvider } from "@/store/production-store";
 import { syncService } from "@/services/sync-service";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -65,35 +62,20 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-
-        await SplashScreen.hideAsync();
-        
-        console.log('🚀 Initializing automatic sync service...');
-        await syncService.startAutoSync();
-      } catch (error) {
-        console.error('❌ Error during app initialization:', error);
-        try {
-          await SplashScreen.hideAsync();
-        } catch (splashError) {
-          console.error('❌ Error hiding splash screen:', splashError);
-        }
-      }
-    };
+    SplashScreen.hideAsync();
     
-    initializeApp();
+    // Initialize automatic sync service
+    console.log('🚀 Initializing automatic sync service...');
+    syncService.startAutoSync();
   }, []);
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ProductionProvider>
-          <GestureHandlerRootView style={styles.container}>
-            <RootLayoutNav />
-          </GestureHandlerRootView>
-        </ProductionProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ProductionProvider>
+        <GestureHandlerRootView style={styles.container}>
+          <RootLayoutNav />
+        </GestureHandlerRootView>
+      </ProductionProvider>
+    </QueryClientProvider>
   );
 }

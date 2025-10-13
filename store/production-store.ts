@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-import { ProductionStore, Inspector, CapacityData, UtilizationData, WIPData, RejectionData, SetupTimeData, CycleTimeData, ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
+import { ProductionStore, Inspector, CapacityData, UtilizationData, WIPData, RejectionData, SetupTimeData, ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
 import { PRODUCT_CATALOG } from '@/constants/production';
-import { saveCapacityDataToSheets, saveUtilizationDataToSheets, saveRejectionDataToSheets, saveWIPDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets } from '@/services/google-sheets';
+import { saveCapacityDataToSheets, saveUtilizationDataToSheets, saveRejectionDataToSheets, saveWIPDataToSheets, saveSetupTimeDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
 
@@ -16,19 +16,17 @@ const initialState: ProductionStore = {
   wipRecords: [],
   rejectionRecords: [],
   setupTimeRecords: [],
-  cycleTimeRecords: [],
   productCatalog: PRODUCT_CATALOG,
 };
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
   const [inspector, setInspectorState] = useState<Inspector | null>(initialState.inspector);
-  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycletime' | null>(initialState.selectedModule);
+  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | null>(initialState.selectedModule);
   const [capacityRecords, setCapacityRecords] = useState<CapacityData[]>(initialState.capacityRecords);
   const [utilizationRecords, setUtilizationRecords] = useState<UtilizationData[]>(initialState.utilizationRecords);
   const [wipRecords, setWipRecords] = useState<WIPData[]>(initialState.wipRecords);
   const [rejectionRecords, setRejectionRecords] = useState<RejectionData[]>(initialState.rejectionRecords);
   const [setupTimeRecords, setSetupTimeRecords] = useState<SetupTimeData[]>(initialState.setupTimeRecords);
-  const [cycleTimeRecords, setCycleTimeRecords] = useState<CycleTimeData[]>(initialState.cycleTimeRecords);
   const [productCatalog] = useState(PRODUCT_CATALOG);
 
   // Get storage implementation based on platform
@@ -71,14 +69,13 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
         wipRecords,
         rejectionRecords,
         setupTimeRecords,
-        cycleTimeRecords,
         lastSaved: getNicaraguaTime().toISOString(),
       };
       await storage.setItem('production-data', JSON.stringify(dataToSave));
     } catch (error) {
       console.error('❌ Error saving to storage:', error);
     }
-  }, [inspector, capacityRecords, utilizationRecords, wipRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, getStorage]);
+  }, [inspector, capacityRecords, utilizationRecords, wipRecords, rejectionRecords, setupTimeRecords, getStorage]);
 
   const setInspector = useCallback((inspector: Inspector) => {
     if (!inspector || !inspector.name || inspector.name.length > 100) {
@@ -98,7 +95,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const addCapacityRecord = useCallback(async (record: Omit<CapacityData, 'id'>) => {
     const newRecord: CapacityData = {
       ...record,
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
     // Save to local state first (always succeeds)
@@ -121,7 +118,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const addUtilizationRecord = useCallback(async (record: Omit<UtilizationData, 'id'>) => {
     const newRecord: UtilizationData = {
       ...record,
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
     // Save to local state first (always succeeds)
@@ -144,7 +141,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const addWipRecord = useCallback(async (record: Omit<WIPData, 'id'>) => {
     const newRecord: WIPData = {
       ...record,
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
     // Save to local state first (always succeeds)
@@ -167,7 +164,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const addRejectionRecord = useCallback(async (record: Omit<RejectionData, 'id'>) => {
     const newRecord: RejectionData = {
       ...record,
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
     // Save to local state first (always succeeds)
@@ -190,7 +187,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const addSetupTimeRecord = useCallback(async (record: Omit<SetupTimeData, 'id'>) => {
     const newRecord: SetupTimeData = {
       ...record,
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
     // Save to local state first (always succeeds)
@@ -205,29 +202,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       }
     } catch (error) {
       await syncService.addToPendingSync('setup', newRecord);
-    }
-    
-    return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
-
-  const addCycleTimeRecord = useCallback(async (record: Omit<CycleTimeData, 'id'>) => {
-    const newRecord: CycleTimeData = {
-      ...record,
-      id: Date.now(),
-    };
-    
-    // Save to local state first (always succeeds)
-    setCycleTimeRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
-    
-    // Try to save to Google Sheets immediately if online
-    try {
-      const result = await saveCycleTimeDataToSheets(newRecord);
-      if (!result.success) {
-        await syncService.addToPendingSync('cycletime', newRecord);
-      }
-    } catch (error) {
-      await syncService.addToPendingSync('cycletime', newRecord);
     }
     
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
@@ -267,84 +241,38 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
         return;
       }
       
-      if (!data || typeof data !== 'object') {
-        console.error('❌ Invalid data structure');
-        await storage.removeItem('production-data');
-        return;
+      if (data.inspector) {
+        setInspectorState({ ...data.inspector, timestamp: new Date(data.inspector.timestamp) });
       }
-      
-      try {
-        if (data.inspector && typeof data.inspector === 'object') {
-          setInspectorState({ ...data.inspector, timestamp: new Date(data.inspector.timestamp) });
-        }
-      } catch (err) {
-        console.error('❌ Error loading inspector:', err);
+      if (Array.isArray(data.capacityRecords)) {
+        setCapacityRecords(data.capacityRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
       }
-      
-      try {
-        if (Array.isArray(data.capacityRecords)) {
-          setCapacityRecords(data.capacityRecords.map((record: any) => ({
-            ...record,
-            timestamp: new Date(record.timestamp),
-          })));
-        }
-      } catch (err) {
-        console.error('❌ Error loading capacity records:', err);
+      if (Array.isArray(data.utilizationRecords)) {
+        setUtilizationRecords(data.utilizationRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
       }
-      
-      try {
-        if (Array.isArray(data.utilizationRecords)) {
-          setUtilizationRecords(data.utilizationRecords.map((record: any) => ({
-            ...record,
-            timestamp: new Date(record.timestamp),
-          })));
-        }
-      } catch (err) {
-        console.error('❌ Error loading utilization records:', err);
+      if (Array.isArray(data.wipRecords)) {
+        setWipRecords(data.wipRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
       }
-      
-      try {
-        if (Array.isArray(data.wipRecords)) {
-          setWipRecords(data.wipRecords.map((record: any) => ({
-            ...record,
-            timestamp: new Date(record.timestamp),
-          })));
-        }
-      } catch (err) {
-        console.error('❌ Error loading wip records:', err);
+      if (Array.isArray(data.rejectionRecords)) {
+        setRejectionRecords(data.rejectionRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
       }
-      
-      try {
-        if (Array.isArray(data.rejectionRecords)) {
-          setRejectionRecords(data.rejectionRecords.map((record: any) => ({
-            ...record,
-            timestamp: new Date(record.timestamp),
-          })));
-        }
-      } catch (err) {
-        console.error('❌ Error loading rejection records:', err);
-      }
-      
-      try {
-        if (Array.isArray(data.setupTimeRecords)) {
-          setSetupTimeRecords(data.setupTimeRecords.map((record: any) => ({
-            ...record,
-            timestamp: new Date(record.timestamp),
-          })));
-        }
-      } catch (err) {
-        console.error('❌ Error loading setup records:', err);
-      }
-      
-      try {
-        if (Array.isArray(data.cycleTimeRecords)) {
-          setCycleTimeRecords(data.cycleTimeRecords.map((record: any) => ({
-            ...record,
-            timestamp: new Date(record.timestamp),
-          })));
-        }
-      } catch (err) {
-        console.error('❌ Error loading cycle time records:', err);
+      if (Array.isArray(data.setupTimeRecords)) {
+        setSetupTimeRecords(data.setupTimeRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
       }
     } catch (error) {
       console.error('❌ Error loading from storage:', error);
@@ -370,7 +298,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     wipRecords,
     rejectionRecords,
     setupTimeRecords,
-    cycleTimeRecords,
     productCatalog,
     setInspector,
     setSelectedModule,
@@ -379,7 +306,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWipRecord,
     addRejectionRecord,
     addSetupTimeRecord,
-    addCycleTimeRecord,
     getProductByCode,
     clearSession,
     loadFromStorage,
@@ -392,7 +318,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     wipRecords,
     rejectionRecords,
     setupTimeRecords,
-    cycleTimeRecords,
     productCatalog,
     setInspector,
     setSelectedModule,
@@ -401,7 +326,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWipRecord,
     addRejectionRecord,
     addSetupTimeRecord,
-    addCycleTimeRecord,
     getProductByCode,
     clearSession,
     loadFromStorage,

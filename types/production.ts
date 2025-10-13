@@ -16,7 +16,7 @@ export type ProductConfig = 'porcionado' | 'no_porcionado';
 export type PackagingType = 'termoformado' | 'empacado_vacio';
 
 export interface CapacityData {
-  id: number;
+  id: string;
   inspector: string;
   timestamp: Date;
   resourceType: string;
@@ -30,7 +30,7 @@ export interface CapacityData {
 }
 
 export interface UtilizationData {
-  id: number;
+  id: string;
   inspector: string;
   timestamp: Date;
   resourceType: string;
@@ -43,7 +43,7 @@ export interface UtilizationData {
 }
 
 export interface WIPData {
-  id: number;
+  id: string;
   inspector: string;
   timestamp: Date;
   line: ProductionLine;
@@ -62,7 +62,7 @@ export interface WIPData {
 }
 
 export interface RejectionData {
-  id: number;
+  id: string;
   inspector: string;
   timestamp: Date;
   line: RejectionLine;
@@ -84,7 +84,7 @@ export type EventType =
   | 'salida_material_empaque';
 
 export interface SetupTimeData {
-  id: number;
+  id: string;
   inspector: string;
   timestamp: Date;
   resourceName: string;
@@ -93,24 +93,13 @@ export interface SetupTimeData {
   description?: string;
 }
 
-export interface CycleTimeData {
-  id: number;
-  inspector: string;
-  timestamp: Date;
-  productName: string;
-  packingMachine: string;
-  cycleTime: number;
-  observations?: string;
-}
-
 export interface ProductionStore {
   inspector: Inspector | null;
-  selectedModule: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycletime' | null;
+  selectedModule: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | null;
   capacityRecords: CapacityData[];
   utilizationRecords: UtilizationData[];
   wipRecords: WIPData[];
   rejectionRecords: RejectionData[];
   setupTimeRecords: SetupTimeData[];
-  cycleTimeRecords: CycleTimeData[];
   productCatalog: ProductCatalog[];
 }

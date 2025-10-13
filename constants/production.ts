@@ -31,9 +31,7 @@ export const EVENT_TYPES = [
   { key: 'salida_bano', label: 'Salida al Baño' },
   { key: 'cambio_producto', label: 'Cambio de Producto' },
   { key: 'cambio_cuchilla', label: 'Cambio de Cuchilla' },
-  { key: 'salida_material_empaque', label: 'Salida por Material de Empaque' },
-  { key: 'paro_total_apt', label: 'Paro Total por APT' },
-  { key: 'paro_equipo_produccion', label: 'Paro de Equipo por Producción' }
+  { key: 'salida_material_empaque', label: 'Salida por Material de Empaque' }
 ] as const;
 
 // Función para obtener las etapas según la configuración del producto

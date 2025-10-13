@@ -21,9 +21,7 @@ const REJECTION_CAUSES = [
   'Presencia de Aserrín',
   'Incumplimiento de Rango de Peso',
   'Presencia de Pelo',
-  'Presencia de Trauma',
-  'Presencia de Cartílago',
-  'Film con Tape Rojo'
+  'Presencia de Trauma'
 ];
 
 const PACKAGE_SIZES = [
