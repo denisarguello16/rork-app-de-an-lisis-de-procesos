@@ -5,8 +5,8 @@ export interface Resource {
 
 export const RESOURCES: Resource[] = [
   { type: 'Máquina Empaque', name: 'Multivac R-105' },
-  { type: 'Máquina Empaque', name: 'ULMA 1' },
-  { type: 'Máquina Empaque', name: 'ULMA 2' },
+  { type: 'Máquina Empaque', name: 'ULMA 1 (Central)' },
+  { type: 'Máquina Empaque', name: 'ULMA 2 (Izquierda)' },
   { type: 'Máquina Empaque', name: 'VS-95' },
   { type: 'Sierra', name: 'Sierra 1' },
   { type: 'Sierra', name: 'Sierra 2' },
@@ -18,6 +18,10 @@ export const RESOURCES: Resource[] = [
   { type: 'Etiquetado', name: 'Indicador 40' },
   { type: 'Etiquetado', name: 'Indicador 70' },
   { type: 'Etiquetado', name: 'Indicador 80' },
+  { type: 'Etiquetado', name: 'E.I - Indicador 30' },
+  { type: 'Etiquetado', name: 'E.I - Indicador 40' },
+  { type: 'Etiquetado', name: 'E.I - Indicador 70' },
+  { type: 'Etiquetado', name: 'E.I - Indicador 80' },
   { type: 'Flejadora', name: 'Flejadora 1' },
 ];
 
