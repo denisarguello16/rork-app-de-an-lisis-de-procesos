@@ -8,14 +8,17 @@ import { Input } from '@/components/ui/Input';
 import { Picker } from '@/components/ui/Picker';
 import { SearchablePicker } from '@/components/ui/SearchablePicker';
 import { PRODUCT_NAMES } from '@/constants/product-names';
-import { PackagingMachine } from '@/types/production';
+import { MonitoredResource } from '@/types/production';
 import { getNicaraguaTime } from '@/constants/timezone';
 
-const PACKAGING_MACHINES: PackagingMachine[] = [
-  'ULMA 1 (Central)',
-  'ULMA 2 (Izquierda)',
-  'Multivac R-105',
-  'CRYOVAC VS'
+const MONITORED_RESOURCES: MonitoredResource[] = [
+  'Sierra 1',
+  'Sierra 2',
+  'Sierra 3',
+  'Indicador 30',
+  'Indicador 40',
+  'Indicador 70',
+  'Indicador 80'
 ];
 
 export default function CycleTimeFormScreen() {
@@ -26,7 +29,7 @@ export default function CycleTimeFormScreen() {
 
   const [formData, setFormData] = React.useState({
     productName: '',
-    packagingMachine: '',
+    monitoredResource: '',
     cycleTime: '',
     observations: '',
   });
@@ -40,8 +43,8 @@ export default function CycleTimeFormScreen() {
       newErrors.productName = 'Debe seleccionar un producto';
     }
 
-    if (!formData.packagingMachine) {
-      newErrors.packagingMachine = 'Debe seleccionar una máquina empacadora';
+    if (!formData.monitoredResource) {
+      newErrors.monitoredResource = 'Debe seleccionar un recurso monitoreado';
     }
 
     if (!formData.cycleTime.trim()) {
@@ -66,7 +69,7 @@ export default function CycleTimeFormScreen() {
       inspector: inspector!.name,
       timestamp: getNicaraguaTime(),
       productName: formData.productName,
-      packagingMachine: formData.packagingMachine as PackagingMachine,
+      monitoredResource: formData.monitoredResource as MonitoredResource,
       cycleTime: parseFloat(formData.cycleTime),
       observations: formData.observations.trim() || undefined,
     };
@@ -75,7 +78,7 @@ export default function CycleTimeFormScreen() {
 
     setFormData({
       productName: '',
-      packagingMachine: '',
+      monitoredResource: '',
       cycleTime: '',
       observations: '',
     });
@@ -107,12 +110,12 @@ export default function CycleTimeFormScreen() {
           />
 
           <Picker
-            label="Máquina Empacadora"
-            value={formData.packagingMachine}
-            options={PACKAGING_MACHINES.map(machine => ({ key: machine, label: machine }))}
-            onSelect={(value) => setFormData(prev => ({ ...prev, packagingMachine: value }))}
+            label="Recurso Monitoreado"
+            value={formData.monitoredResource}
+            options={MONITORED_RESOURCES.map(resource => ({ key: resource, label: resource }))}
+            onSelect={(value) => setFormData(prev => ({ ...prev, monitoredResource: value }))}
             required
-            error={errors.packagingMachine}
+            error={errors.monitoredResource}
           />
         </Card>
 
