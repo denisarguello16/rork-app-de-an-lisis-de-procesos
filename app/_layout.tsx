@@ -64,9 +64,15 @@ export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
     
-    // Initialize automatic sync service
-    console.log('🚀 Initializing automatic sync service...');
-    syncService.startAutoSync();
+    // Initialize automatic sync service with delay to avoid startup issues
+    const timer = setTimeout(() => {
+      console.log('🚀 Initializing automatic sync service...');
+      syncService.startAutoSync().catch(error => {
+        console.log('⚠️ Auto-sync initialization skipped:', error);
+      });
+    }, 5000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   return (

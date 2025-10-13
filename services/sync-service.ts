@@ -240,7 +240,7 @@ class SyncService {
       const isOnline = result.success;
       await this.updateSyncStatus({ isOnline });
       return isOnline;
-    } catch (error) {
+    } catch {
       await this.updateSyncStatus({ isOnline: false });
       return false;
     }
@@ -287,19 +287,31 @@ class SyncService {
 
   // Start automatic sync when connection is detected
   async startAutoSync(): Promise<void> {
-    // Initial sync attempt
-    this.syncPendingItems();
-    
-    // Set up periodic sync every 30 seconds
-    setInterval(async () => {
-      const pendingItems = await this.getPendingSyncItems();
-      if (pendingItems.length > 0) {
-        const isOnline = await this.checkConnectivity();
-        if (isOnline && !this.syncInProgress) {
-          this.syncPendingItems();
+    try {
+      // Initial sync attempt (non-blocking)
+      this.syncPendingItems().catch(error => {
+        console.log('⚠️ Initial sync skipped:', error);
+      });
+      
+      // Set up periodic sync every 30 seconds
+      setInterval(async () => {
+        try {
+          const pendingItems = await this.getPendingSyncItems();
+          if (pendingItems.length > 0) {
+            const isOnline = await this.checkConnectivity();
+            if (isOnline && !this.syncInProgress) {
+              this.syncPendingItems().catch(error => {
+                console.log('⚠️ Periodic sync failed:', error);
+              });
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Periodic sync check failed:', error);
         }
-      }
-    }, 30000); // 30 seconds
+      }, 30000); // 30 seconds
+    } catch (error) {
+      console.log('⚠️ Auto-sync setup failed:', error);
+    }
   }
 
   // Sync all pending items
