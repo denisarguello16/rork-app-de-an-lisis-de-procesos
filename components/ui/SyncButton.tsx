@@ -214,7 +214,7 @@ export const SyncButton: React.FC<SyncButtonProps> = ({ onSyncComplete, showButt
       <View style={[styles.statusOnlyContainer, style]}>
         <View style={styles.statusOnlyContent}>
           {getStatusIcon()}
-          <Text style={[styles.statusOnlyText, { marginLeft: 8 }]}>
+          <Text style={styles.statusOnlyText}>
             {getStatusText()}
           </Text>
         </View>
@@ -245,7 +245,7 @@ export const SyncButton: React.FC<SyncButtonProps> = ({ onSyncComplete, showButt
       >
         <View style={styles.buttonContent}>
           {getStatusIcon()}
-          <Text style={[styles.buttonText, { marginLeft: 8 }]}>{getStatusText()}</Text>
+          <Text style={styles.buttonText}>{getStatusText()}</Text>
         </View>
       </TouchableOpacity>
       
@@ -256,7 +256,7 @@ export const SyncButton: React.FC<SyncButtonProps> = ({ onSyncComplete, showButt
           ) : (
             <WifiOff size={14} color={COLORS.error} />
           )}
-          <Text style={[styles.statusText, { marginLeft: 6 }]}>
+          <Text style={styles.statusText}>
             {syncStats.isOnline ? 'En línea' : 'Sin conexión'}
           </Text>
         </View>
@@ -267,7 +267,7 @@ export const SyncButton: React.FC<SyncButtonProps> = ({ onSyncComplete, showButt
           ) : (
             <CheckCircle size={14} color={COLORS.success} />
           )}
-          <Text style={[styles.statusText, { marginLeft: 6 }]}>
+          <Text style={styles.statusText}>
             Última sync: {formatLastSyncTime()}
           </Text>
         </View>
@@ -332,11 +332,12 @@ const styles = StyleSheet.create({
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   statusInfo: {
     paddingTop: 4,
@@ -345,6 +346,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
+    gap: 6,
   },
   statusText: {
     fontSize: 14,
@@ -370,10 +372,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    gap: 8,
   },
   statusOnlyText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '500' as const,
     color: COLORS.text,
     flex: 1,
   },
