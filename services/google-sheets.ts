@@ -1,4 +1,4 @@
-import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData } from '@/types/production';
+import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData, CycleTimeData } from '@/types/production';
 import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 
 // Google Sheets configuration
@@ -427,8 +427,94 @@ export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<Go
   }
 };
 
+// Function to save Cycle Time data to Google Sheets
+export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<GoogleSheetsResponse> => {
+  if (!isGoogleSheetsConfigured()) {
+    return {
+      success: false,
+      error: 'Google Sheets not configured. Data saved locally only.'
+    };
+  }
+
+  try {
+    const payload = {
+      type: 'cycle-time',
+      data: {
+        id: data.id,
+        inspector: data.inspector,
+        timestamp: formatForGoogleSheets(data.timestamp),
+        productName: data.productName,
+        packagingMachine: data.packagingMachine,
+        cycleTime: data.cycleTime,
+        observations: data.observations
+      }
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+    }
+
+    const responseText = await response.text();
+    
+    if (responseText.trim().startsWith('<')) {
+      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
+    }
+    
+    try {
+      const result = JSON.parse(responseText);
+      return result;
+    } catch (parseError) {
+      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+    }
+  } catch (error) {
+    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
+        };
+      }
+      
+      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
+        return {
+          success: false,
+          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
+        };
+      }
+      
+      return {
+        success: false,
+        error: 'Error de sincronización. Los datos se guardaron localmente.'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'Error desconocido. Los datos se guardaron localmente.'
+    };
+  }
+};
+
 // Function to save data with fallback to local storage
-export const saveDataWithFallback = async (data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData, type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup'): Promise<GoogleSheetsResponse> => {
+export const saveDataWithFallback = async (data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData | CycleTimeData, type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup' | 'cycle-time'): Promise<GoogleSheetsResponse> => {
   try {
     // Try to save to Google Sheets first
     const result = type === 'capacity' 
@@ -439,7 +525,9 @@ export const saveDataWithFallback = async (data: CapacityData | UtilizationData 
       ? await saveRejectionDataToSheets(data as RejectionData)
       : type === 'wip'
       ? await saveWIPDataToSheets(data as WIPData)
-      : await saveSetupTimeDataToSheets(data as SetupTimeData);
+      : type === 'setup'
+      ? await saveSetupTimeDataToSheets(data as SetupTimeData)
+      : await saveCycleTimeDataToSheets(data as CycleTimeData);
     
     if (result.success) {
       return result;
@@ -825,6 +913,30 @@ function doPost(e) {
       
       setupSheet.appendRow(row);
       console.log('Successfully added setup time data row');
+      
+    } else if (data.type === 'cycle-time') {
+      const cycleTimeSheet = sheet.getSheetByName('CycleTime') || sheet.insertSheet('CycleTime');
+      
+      // Add headers if sheet is empty
+      if (cycleTimeSheet.getLastRow() === 0) {
+        cycleTimeSheet.getRange(1, 1, 1, 7).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Product Name', 'Packaging Machine', 'Cycle Time (seconds)', 'Observations'
+        ]]);
+      }
+      
+      // Add data row
+      const row = [
+        data.data.id,
+        data.data.inspector,
+        data.data.timestamp,
+        data.data.productName,
+        data.data.packagingMachine,
+        data.data.cycleTime,
+        data.data.observations || ''
+      ];
+      
+      cycleTimeSheet.appendRow(row);
+      console.log('Successfully added cycle time data row');
       
     } else if (data.type === 'test') {
       // Handle test requests

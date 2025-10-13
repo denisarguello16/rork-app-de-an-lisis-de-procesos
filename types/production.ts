@@ -93,13 +93,26 @@ export interface SetupTimeData {
   description?: string;
 }
 
+export type PackagingMachine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'CRYOVAC VS';
+
+export interface CycleTimeData {
+  id: string;
+  inspector: string;
+  timestamp: Date;
+  productName: string;
+  packagingMachine: PackagingMachine;
+  cycleTime: number;
+  observations?: string;
+}
+
 export interface ProductionStore {
   inspector: Inspector | null;
-  selectedModule: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | null;
+  selectedModule: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | null;
   capacityRecords: CapacityData[];
   utilizationRecords: UtilizationData[];
   wipRecords: WIPData[];
   rejectionRecords: RejectionData[];
   setupTimeRecords: SetupTimeData[];
+  cycleTimeRecords: CycleTimeData[];
   productCatalog: ProductCatalog[];
 }

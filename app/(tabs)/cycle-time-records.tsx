@@ -1,138 +1,105 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { Plus, Timer } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { CycleTimeData } from '@/types/production';
-import Colors from '@/constants/colors';
+import { Colors } from '@/constants/colors';
+import { formatForGoogleSheets } from '@/constants/timezone';
 
 export default function CycleTimeRecordsScreen() {
-  const { cycleTimeRecords } = useProductionStore();
+  const { cycleTimeRecords, inspector } = useProductionStore();
 
-  const formatCycleTime = (seconds: number) => {
-    if (seconds < 60) {
-      return `${seconds.toFixed(2)}s`;
+  const handleAddRecord = () => {
+    if (!inspector) {
+      router.push('/');
+      return;
     }
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = (seconds % 60).toFixed(0);
-    return `${minutes}m ${remainingSeconds}s`;
+    router.push('/cycle-time-form');
   };
 
-  const getAverageCycleTime = () => {
-    if (cycleTimeRecords.length === 0) return 0;
-    const total = cycleTimeRecords.reduce((sum, record) => sum + record.cycleTime, 0);
-    return total / cycleTimeRecords.length;
-  };
-
-  const getAverageCycleTimeByMachine = (machine: string) => {
-    const machineRecords = cycleTimeRecords.filter(r => r.packingMachine === machine);
-    if (machineRecords.length === 0) return 0;
-    const total = machineRecords.reduce((sum, record) => sum + record.cycleTime, 0);
-    return total / machineRecords.length;
-  };
-
-  const getMachineStats = () => {
-    const machines = [...new Set(cycleTimeRecords.map(r => r.packingMachine))];
-    return machines.map(machine => ({
-      machine,
-      count: cycleTimeRecords.filter(r => r.packingMachine === machine).length,
-      average: getAverageCycleTimeByMachine(machine),
-    }));
-  };
-
-  const renderCycleTimeRecord = ({ item }: { item: CycleTimeData }) => (
-    <Card style={styles.recordCard}>
-      <View style={styles.recordHeader}>
-        <Text style={styles.recordTitle}>{item.productName}</Text>
-        <Text style={styles.recordTime}>{formatCycleTime(item.cycleTime)}</Text>
-      </View>
-      
-      <View style={styles.recordDetails}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Máquina:</Text>
-          <Text style={styles.detailValue}>{item.packingMachine}</Text>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Inspector:</Text>
-          <Text style={styles.detailValue}>{item.inspector}</Text>
-        </View>
-        
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Fecha:</Text>
-          <Text style={styles.detailValue}>
-            {item.timestamp.toLocaleDateString('es-NI')} {item.timestamp.toLocaleTimeString('es-NI', { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-        </View>
-        
-        {item.observations && (
-          <View style={styles.observationsContainer}>
-            <Text style={styles.detailLabel}>Observaciones:</Text>
-            <Text style={styles.observationsText}>{item.observations}</Text>
-          </View>
-        )}
-      </View>
-    </Card>
+  const sortedRecords = [...cycleTimeRecords].sort((a, b) => 
+    b.timestamp.getTime() - a.timestamp.getTime()
   );
 
   return (
     <View style={styles.container}>
+      <Stack.Screen 
+        options={{ 
+          title: 'Tiempos de Ciclo',
+          headerRight: () => (
+            <TouchableOpacity onPress={handleAddRecord} style={styles.addButton}>
+              <Plus size={24} color={Colors.light.primary} />
+            </TouchableOpacity>
+          ),
+        }} 
+      />
+      
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Registros de Tiempo de Ciclo</Text>
-          <Text style={styles.subtitle}>
-            Monitoreo de tiempos de ciclo de máquinas empacadoras
-          </Text>
-        </View>
-
-        {cycleTimeRecords.length > 0 && (
-          <>
-            <Card style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Resumen General</Text>
-              <View style={styles.summaryGrid}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>{cycleTimeRecords.length}</Text>
-                  <Text style={styles.summaryLabel}>Registros</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryValue}>{formatCycleTime(getAverageCycleTime())}</Text>
-                  <Text style={styles.summaryLabel}>Promedio</Text>
-                </View>
-              </View>
-            </Card>
-
-            {getMachineStats().length > 0 && (
-              <Card style={styles.machineStatsCard}>
-                <Text style={styles.summaryTitle}>Estadísticas por Máquina</Text>
-                {getMachineStats().map((stat, index) => (
-                  <View key={index} style={styles.machineStatRow}>
-                    <View style={styles.machineStatInfo}>
-                      <Text style={styles.machineStatName}>{stat.machine}</Text>
-                      <Text style={styles.machineStatCount}>{stat.count} registros</Text>
-                    </View>
-                    <Text style={styles.machineStatAverage}>{formatCycleTime(stat.average)}</Text>
-                  </View>
-                ))}
-              </Card>
-            )}
-          </>
-        )}
-
-        {cycleTimeRecords.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No hay registros de tiempo de ciclo</Text>
-            <Text style={styles.emptyText}>
-              Los registros de tiempo de ciclo aparecerán aquí una vez que comiences a registrar datos.
+        {!inspector && (
+          <Card style={styles.warningCard}>
+            <Text style={styles.warningText}>
+              Debe iniciar sesión como inspector para registrar tiempos de ciclo
             </Text>
+            <Button
+              title="Ir a Inicio"
+              onPress={() => router.push('/')}
+              style={styles.warningButton}
+            />
           </Card>
-        ) : (
-          <FlatList
-            data={cycleTimeRecords.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())}
-            renderItem={renderCycleTimeRecord}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
-          />
         )}
+
+        {inspector && sortedRecords.length === 0 && (
+          <Card style={styles.emptyCard}>
+            <Timer size={48} color={Colors.light.textSecondary} />
+            <Text style={styles.emptyTitle}>No hay registros</Text>
+            <Text style={styles.emptyText}>
+              Comienza a registrar los tiempos de ciclo de las máquinas empacadoras
+            </Text>
+            <Button
+              title="Agregar Registro"
+              onPress={handleAddRecord}
+              style={styles.emptyButton}
+            />
+          </Card>
+        )}
+
+        {sortedRecords.map((record) => (
+          <Card key={record.id} style={styles.recordCard}>
+            <View style={styles.recordHeader}>
+              <View style={styles.recordHeaderLeft}>
+                <Timer size={20} color={Colors.light.primary} />
+                <Text style={styles.recordTitle}>{record.productName}</Text>
+              </View>
+              <Text style={styles.recordTime}>{formatForGoogleSheets(record.timestamp)}</Text>
+            </View>
+
+            <View style={styles.recordBody}>
+              <View style={styles.recordRow}>
+                <Text style={styles.recordLabel}>Máquina:</Text>
+                <Text style={styles.recordValue}>{record.packagingMachine}</Text>
+              </View>
+
+              <View style={styles.recordRow}>
+                <Text style={styles.recordLabel}>Tiempo de Ciclo:</Text>
+                <Text style={styles.recordValue}>{record.cycleTime} segundos</Text>
+              </View>
+
+              {record.observations && (
+                <View style={styles.recordRow}>
+                  <Text style={styles.recordLabel}>Observaciones:</Text>
+                  <Text style={styles.recordValue}>{record.observations}</Text>
+                </View>
+              )}
+
+              <View style={styles.recordRow}>
+                <Text style={styles.recordLabel}>Inspector:</Text>
+                <Text style={styles.recordValue}>{record.inspector}</Text>
+              </View>
+            </View>
+          </Card>
+        ))}
       </ScrollView>
     </View>
   );
@@ -146,80 +113,43 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
+  addButton: {
+    marginRight: 8,
+    padding: 8,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold' as const,
-    color: '#1e293b',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  summaryCard: {
-    marginBottom: 16,
-    backgroundColor: '#dbeafe',
-    borderColor: Colors.light.primary,
+  warningCard: {
+    backgroundColor: '#fef3c7',
+    borderColor: '#f59e0b',
     borderWidth: 1,
   },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: '#1e293b',
+  warningText: {
+    fontSize: 16,
+    color: '#92400e',
     marginBottom: 16,
+    textAlign: 'center',
   },
-  summaryGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  warningButton: {
+    marginTop: 8,
   },
-  summaryItem: {
+  emptyCard: {
     alignItems: 'center',
+    padding: 40,
   },
-  summaryValue: {
-    fontSize: 24,
-    fontWeight: 'bold' as const,
-    color: Colors.light.primary,
-    marginBottom: 4,
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+    color: Colors.light.text,
+    marginTop: 16,
+    marginBottom: 8,
   },
-  summaryLabel: {
+  emptyText: {
     fontSize: 14,
-    color: '#64748b',
-  },
-  machineStatsCard: {
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
     marginBottom: 24,
   },
-  machineStatRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  machineStatInfo: {
-    flex: 1,
-  },
-  machineStatName: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  machineStatCount: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  machineStatAverage: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
-    color: Colors.light.primary,
+  emptyButton: {
+    minWidth: 200,
   },
   recordCard: {
     marginBottom: 16,
@@ -228,66 +158,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
+  recordHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   recordTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600' as const,
-    color: '#1e293b',
+    color: Colors.light.text,
+    marginLeft: 8,
     flex: 1,
   },
   recordTime: {
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    color: Colors.light.primary,
+    fontSize: 12,
+    color: Colors.light.textSecondary,
   },
-  recordDetails: {
-    gap: 8,
+  recordBody: {
+    gap: 12,
   },
-  detailRow: {
+  recordRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  detailLabel: {
+  recordLabel: {
     fontSize: 14,
-    color: '#64748b',
+    color: Colors.light.textSecondary,
     fontWeight: '500' as const,
+    flex: 1,
   },
-  detailValue: {
+  recordValue: {
     fontSize: 14,
-    color: '#1e293b',
-  },
-  observationsContainer: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-  },
-  observationsText: {
-    fontSize: 14,
-    color: '#1e293b',
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  emptyCard: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: 18,
+    color: Colors.light.text,
     fontWeight: '600' as const,
-    color: '#1e293b',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 20,
+    flex: 2,
+    textAlign: 'right',
   },
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { BarChart3, ClipboardList, XCircle, Clock, Package } from 'lucide-react-native';
+import { BarChart3, ClipboardList, XCircle, Clock, Package, Timer } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,8 +11,8 @@ import { Colors } from '@/constants/colors';
 export default function ModuleSelectionScreen() {
   const { inspector, setSelectedModule, clearSession } = useProductionStore();
 
-  const handleModuleSelect = (module: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup') => {
-    if (!module || !['capacity', 'utilization', 'wip', 'rejection', 'setup'].includes(module)) {
+  const handleModuleSelect = (module: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time') => {
+    if (!module || !['capacity', 'utilization', 'wip', 'rejection', 'setup', 'cycle-time'].includes(module)) {
       return;
     }
     setSelectedModule(module);
@@ -27,6 +27,8 @@ export default function ModuleSelectionScreen() {
       router.push('/wip-form');
     } else if (module === 'capacity') {
       router.push('/capacity-form');
+    } else if (module === 'cycle-time') {
+      router.push('/cycle-time-form');
     }
   };
 
@@ -182,6 +184,31 @@ export default function ModuleSelectionScreen() {
           <Button
             title="Seleccionar Módulo"
             onPress={() => handleModuleSelect('setup')}
+            style={styles.selectButton}
+          />
+        </Card>
+
+        <Card style={styles.moduleCard}>
+          <View style={styles.moduleHeader}>
+            <Timer size={40} color="#10b981" />
+            <Text style={styles.moduleTitle}>Registro de Tiempos de Ciclo</Text>
+          </View>
+          
+          <Text style={styles.moduleDescription}>
+            Monitoreo de tiempos de ciclo de máquinas empacadoras:
+          </Text>
+          
+          <View style={styles.featureList}>
+            <Text style={styles.feature}>• Registro por producto del catálogo</Text>
+            <Text style={styles.feature}>• Selección de máquina empacadora</Text>
+            <Text style={styles.feature}>• Tiempo de ciclo en segundos</Text>
+            <Text style={styles.feature}>• Campo para observaciones</Text>
+            <Text style={styles.feature}>• Análisis de eficiencia de empaque</Text>
+          </View>
+
+          <Button
+            title="Seleccionar Módulo"
+            onPress={() => handleModuleSelect('cycle-time')}
             style={styles.selectButton}
           />
         </Card>

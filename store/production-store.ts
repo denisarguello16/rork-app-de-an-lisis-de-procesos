@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-import { ProductionStore, Inspector, CapacityData, UtilizationData, WIPData, RejectionData, SetupTimeData, ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
+import { ProductionStore, Inspector, CapacityData, UtilizationData, WIPData, RejectionData, SetupTimeData, CycleTimeData, ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
 import { PRODUCT_CATALOG } from '@/constants/production';
-import { saveCapacityDataToSheets, saveUtilizationDataToSheets, saveRejectionDataToSheets, saveWIPDataToSheets, saveSetupTimeDataToSheets } from '@/services/google-sheets';
+import { saveCapacityDataToSheets, saveUtilizationDataToSheets, saveRejectionDataToSheets, saveWIPDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
 
@@ -16,17 +16,19 @@ const initialState: ProductionStore = {
   wipRecords: [],
   rejectionRecords: [],
   setupTimeRecords: [],
+  cycleTimeRecords: [],
   productCatalog: PRODUCT_CATALOG,
 };
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
   const [inspector, setInspectorState] = useState<Inspector | null>(initialState.inspector);
-  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | null>(initialState.selectedModule);
+  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | null>(initialState.selectedModule);
   const [capacityRecords, setCapacityRecords] = useState<CapacityData[]>(initialState.capacityRecords);
   const [utilizationRecords, setUtilizationRecords] = useState<UtilizationData[]>(initialState.utilizationRecords);
   const [wipRecords, setWipRecords] = useState<WIPData[]>(initialState.wipRecords);
   const [rejectionRecords, setRejectionRecords] = useState<RejectionData[]>(initialState.rejectionRecords);
   const [setupTimeRecords, setSetupTimeRecords] = useState<SetupTimeData[]>(initialState.setupTimeRecords);
+  const [cycleTimeRecords, setCycleTimeRecords] = useState<CycleTimeData[]>(initialState.cycleTimeRecords);
   const [productCatalog] = useState(PRODUCT_CATALOG);
 
   // Get storage implementation based on platform
@@ -69,13 +71,14 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
         wipRecords,
         rejectionRecords,
         setupTimeRecords,
+        cycleTimeRecords,
         lastSaved: getNicaraguaTime().toISOString(),
       };
       await storage.setItem('production-data', JSON.stringify(dataToSave));
     } catch (error) {
       console.error('❌ Error saving to storage:', error);
     }
-  }, [inspector, capacityRecords, utilizationRecords, wipRecords, rejectionRecords, setupTimeRecords, getStorage]);
+  }, [inspector, capacityRecords, utilizationRecords, wipRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, getStorage]);
 
   const setInspector = useCallback((inspector: Inspector) => {
     if (!inspector || !inspector.name || inspector.name.length > 100) {
@@ -207,6 +210,27 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
   }, [saveToStorage]);
 
+  const addCycleTimeRecord = useCallback(async (record: Omit<CycleTimeData, 'id'>) => {
+    const newRecord: CycleTimeData = {
+      ...record,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    setCycleTimeRecords(prev => [...prev, newRecord]);
+    await saveToStorage();
+    
+    try {
+      const result = await saveCycleTimeDataToSheets(newRecord);
+      if (!result.success) {
+        await syncService.addToPendingSync('cycle-time', newRecord);
+      }
+    } catch (error) {
+      await syncService.addToPendingSync('cycle-time', newRecord);
+    }
+    
+    return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
+  }, [saveToStorage]);
+
   const getProductByCode = useCallback((code: string) => {
     const product = productCatalog.find(p => p.code === code);
     return product ? { code: product.code, name: product.name } : null;
@@ -274,6 +298,12 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
           timestamp: new Date(record.timestamp),
         })));
       }
+      if (Array.isArray(data.cycleTimeRecords)) {
+        setCycleTimeRecords(data.cycleTimeRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
+      }
     } catch (error) {
       console.error('❌ Error loading from storage:', error);
       try {
@@ -298,6 +328,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     wipRecords,
     rejectionRecords,
     setupTimeRecords,
+    cycleTimeRecords,
     productCatalog,
     setInspector,
     setSelectedModule,
@@ -306,6 +337,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWipRecord,
     addRejectionRecord,
     addSetupTimeRecord,
+    addCycleTimeRecord,
     getProductByCode,
     clearSession,
     loadFromStorage,
@@ -318,6 +350,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     wipRecords,
     rejectionRecords,
     setupTimeRecords,
+    cycleTimeRecords,
     productCatalog,
     setInspector,
     setSelectedModule,
@@ -326,6 +359,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWipRecord,
     addRejectionRecord,
     addSetupTimeRecord,
+    addCycleTimeRecord,
     getProductByCode,
     clearSession,
     loadFromStorage,

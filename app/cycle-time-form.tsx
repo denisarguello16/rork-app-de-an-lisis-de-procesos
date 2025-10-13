@@ -1,16 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { SearchablePicker } from '@/components/ui/SearchablePicker';
 import { Picker } from '@/components/ui/Picker';
-import { PACKING_MACHINES } from '@/constants/resources';
+import { SearchablePicker } from '@/components/ui/SearchablePicker';
 import { PRODUCT_NAMES } from '@/constants/product-names';
+import { PackagingMachine } from '@/types/production';
 import { getNicaraguaTime } from '@/constants/timezone';
-import { Colors } from '@/constants/colors';
+
+const PACKAGING_MACHINES: PackagingMachine[] = [
+  'ULMA 1 (Central)',
+  'ULMA 2 (Izquierda)',
+  'Multivac R-105',
+  'CRYOVAC VS'
+];
 
 export default function CycleTimeFormScreen() {
   const {
@@ -20,13 +26,12 @@ export default function CycleTimeFormScreen() {
 
   const [formData, setFormData] = React.useState({
     productName: '',
-    packingMachine: '',
+    packagingMachine: '',
     cycleTime: '',
     observations: '',
   });
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -35,8 +40,8 @@ export default function CycleTimeFormScreen() {
       newErrors.productName = 'Debe seleccionar un producto';
     }
 
-    if (!formData.packingMachine) {
-      newErrors.packingMachine = 'Debe seleccionar una máquina empacadora';
+    if (!formData.packagingMachine) {
+      newErrors.packagingMachine = 'Debe seleccionar una máquina empacadora';
     }
 
     if (!formData.cycleTime.trim()) {
@@ -57,144 +62,88 @@ export default function CycleTimeFormScreen() {
       return;
     }
 
-    setIsSubmitting(true);
+    const record = {
+      inspector: inspector!.name,
+      timestamp: getNicaraguaTime(),
+      productName: formData.productName,
+      packagingMachine: formData.packagingMachine as PackagingMachine,
+      cycleTime: parseFloat(formData.cycleTime),
+      observations: formData.observations.trim() || undefined,
+    };
 
-    try {
-      const record = {
-        inspector: inspector!.name,
-        timestamp: getNicaraguaTime(),
-        productName: formData.productName,
-        packingMachine: formData.packingMachine,
-        cycleTime: parseFloat(formData.cycleTime),
-        observations: formData.observations.trim() || undefined,
-      };
+    await addCycleTimeRecord(record);
 
-      await addCycleTimeRecord(record);
+    setFormData({
+      productName: '',
+      packagingMachine: '',
+      cycleTime: '',
+      observations: '',
+    });
+    setErrors({});
 
-      setFormData({
-        productName: '',
-        packingMachine: '',
-        cycleTime: '',
-        observations: '',
-      });
-      setErrors({});
-
-      Alert.alert(
-        'Éxito',
-        'Registro de tiempo de ciclo guardado correctamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]
-      );
-    } catch (error) {
-      console.error('Error submitting cycle time record:', error);
-      Alert.alert(
-        'Error',
-        'Hubo un error al guardar el registro. Por favor intente nuevamente.'
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    router.back();
   };
-
-  const productOptions = React.useMemo(() => {
-    return PRODUCT_NAMES.map(name => ({
-      key: name,
-      label: name,
-    }));
-  }, []);
-
-  const packingMachineOptions = React.useMemo(() => {
-    return PACKING_MACHINES.map(machine => ({
-      key: machine,
-      label: machine,
-    }));
-  }, []);
 
   return (
     <View style={styles.container}>
       <Stack.Screen 
         options={{ 
           title: 'Registro de Tiempo de Ciclo',
-          headerLeft: () => (
-            <Button
-              title="Atrás"
-              onPress={() => router.back()}
-              variant="secondary"
-              size="small"
-              style={styles.backButton}
-            />
-          ),
         }} 
       />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card>
           <Text style={styles.sectionTitle}>Información del Monitoreo</Text>
-          <Text style={styles.inspectorText}>Inspector: {inspector?.name}</Text>
-          <Text style={styles.timestampText}>
-            Hora: {getNicaraguaTime().toLocaleString('es-NI', {
-              dateStyle: 'short',
-              timeStyle: 'short',
-            })}
-          </Text>
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>Datos del Producto</Text>
           
           <SearchablePicker
             label="Nombre del Producto"
             value={formData.productName}
-            options={productOptions}
+            options={PRODUCT_NAMES.map(name => ({ key: name, label: name }))}
             onSelect={(value) => setFormData(prev => ({ ...prev, productName: value }))}
-            placeholder="Buscar producto..."
             required
             error={errors.productName}
+            placeholder="Buscar producto..."
           />
 
           <Picker
-            label="Recurso Monitoreado"
-            value={formData.packingMachine}
-            options={packingMachineOptions}
-            onSelect={(value) => setFormData(prev => ({ ...prev, packingMachine: value }))}
+            label="Máquina Empacadora"
+            value={formData.packagingMachine}
+            options={PACKAGING_MACHINES.map(machine => ({ key: machine, label: machine }))}
+            onSelect={(value) => setFormData(prev => ({ ...prev, packagingMachine: value }))}
             required
-            error={errors.packingMachine}
+            error={errors.packagingMachine}
           />
         </Card>
 
         <Card>
-          <Text style={styles.sectionTitle}>Tiempo de Ciclo</Text>
+          <Text style={styles.sectionTitle}>Datos de Tiempo</Text>
           
           <Input
             label="Tiempo de Ciclo (segundos)"
             value={formData.cycleTime}
             onChangeText={(value) => setFormData(prev => ({ ...prev, cycleTime: value }))}
-            keyboardType="decimal-pad"
             placeholder="Ej: 12.5"
+            keyboardType="decimal-pad"
             required
             error={errors.cycleTime}
           />
 
           <Input
-            label="Observaciones"
+            label="Observaciones (opcional)"
             value={formData.observations}
             onChangeText={(value) => setFormData(prev => ({ ...prev, observations: value }))}
+            placeholder="Detalles adicionales del monitoreo..."
             multiline
             numberOfLines={3}
-            placeholder="Observaciones adicionales (opcional)"
+          />
+
+          <Button
+            title="Guardar Registro"
+            onPress={handleSubmit}
+            style={styles.submitButton}
           />
         </Card>
-
-        <Button
-          title={isSubmitting ? "Guardando..." : "Guardar Registro"}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          style={styles.submitButton}
-        />
       </ScrollView>
     </View>
   );
@@ -208,29 +157,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginLeft: -8,
-  },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.light.text,
-    marginBottom: 16,
-  },
-  inspectorText: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 4,
-  },
-  timestampText: {
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: 20,
+    fontWeight: '600' as const,
+    color: '#1e293b',
+    marginBottom: 20,
   },
   submitButton: {
-    marginTop: 8,
-    marginBottom: 32,
+    marginTop: 16,
   },
 });
