@@ -11,11 +11,18 @@ import { PRODUCT_NAMES } from '@/constants/product-names';
 import { PackagingMachine } from '@/types/production';
 import { getNicaraguaTime } from '@/constants/timezone';
 
-const PACKAGING_MACHINES: PackagingMachine[] = [
+const MONITORED_RESOURCES: PackagingMachine[] = [
   'ULMA 1 (Central)',
   'ULMA 2 (Izquierda)',
   'Multivac R-105',
-  'CRYOVAC VS'
+  'CRYOVAC VS',
+  'Sierra 1',
+  'Sierra 2',
+  'Sierra 3',
+  'Indicador 30',
+  'Indicador 40',
+  'Indicador 70',
+  'Indicador 80'
 ];
 
 export default function CycleTimeFormScreen() {
@@ -41,7 +48,7 @@ export default function CycleTimeFormScreen() {
     }
 
     if (!formData.packagingMachine) {
-      newErrors.packagingMachine = 'Debe seleccionar una máquina empacadora';
+      newErrors.packagingMachine = 'Debe seleccionar un recurso monitoreado';
     }
 
     if (!formData.cycleTime.trim()) {
@@ -107,9 +114,9 @@ export default function CycleTimeFormScreen() {
           />
 
           <Picker
-            label="Máquina Empacadora"
+            label="Recurso Monitoreado"
             value={formData.packagingMachine}
-            options={PACKAGING_MACHINES.map(machine => ({ key: machine, label: machine }))}
+            options={MONITORED_RESOURCES.map(machine => ({ key: machine, label: machine }))}
             onSelect={(value) => setFormData(prev => ({ ...prev, packagingMachine: value }))}
             required
             error={errors.packagingMachine}
