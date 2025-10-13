@@ -15,7 +15,7 @@ const MONITORED_RESOURCES: PackagingMachine[] = [
   'ULMA 1 (Central)',
   'ULMA 2 (Izquierda)',
   'Multivac R-105',
-  'CRYOVAC VS',
+  'VS-95',
   'Sierra 1',
   'Sierra 2',
   'Sierra 3',

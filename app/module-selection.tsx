@@ -152,7 +152,7 @@ export default function ModuleSelectionScreen() {
             <Text style={styles.feature}>• ULMA 1 (Central)</Text>
             <Text style={styles.feature}>• ULMA 2 (Izquierda)</Text>
             <Text style={styles.feature}>• Multivac R-105</Text>
-            <Text style={styles.feature}>• CRYOVAC VS</Text>
+            <Text style={styles.feature}>• VS-95</Text>
             <Text style={styles.feature}>• Control por tamaño y cantidad</Text>
           </View>
 

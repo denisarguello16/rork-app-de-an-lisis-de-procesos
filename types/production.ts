@@ -9,8 +9,8 @@ export interface ProductCatalog {
   category: string;
 }
 
-export type ProductionLine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'CRYOVAC VS';
-export type RejectionLine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'CRYOVAC VS';
+export type ProductionLine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'VS-95';
+export type RejectionLine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'VS-95';
 export type ProductState = 'congelado' | 'refrigerado';
 export type ProductConfig = 'porcionado' | 'no_porcionado';
 export type PackagingType = 'termoformado' | 'empacado_vacio';
@@ -97,7 +97,7 @@ export type PackagingMachine =
   | 'ULMA 1 (Central)' 
   | 'ULMA 2 (Izquierda)' 
   | 'Multivac R-105' 
-  | 'CRYOVAC VS'
+  | 'VS-95'
   | 'Sierra 1'
   | 'Sierra 2'
   | 'Sierra 3'

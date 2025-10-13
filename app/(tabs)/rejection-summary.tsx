@@ -66,7 +66,7 @@ export default function RejectionSummaryScreen() {
   };
 
   const formatLineName = (line: string) => {
-    return line === 'CRYOVAC VS' ? 'VS-95' : line;
+    return line;
   };
 
   const getTopItems = (data: Record<string, number>, limit: number = 5) => {
