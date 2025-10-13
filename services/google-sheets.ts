@@ -6,7 +6,7 @@ import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 const GOOGLE_SHEETS_CONFIG = {
   // Reemplaza con la URL de tu Google Apps Script web app
   // Ejemplo: 'https://script.google.com/macros/s/AKfycbxPH25gA2xxHNxjU3wjzlFIEL-p9Nz6WdHKo8MPtjmhF6vd9YcKrrpNmxIdPagapZgPmA/exec'
-  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbz3cvPWeoG4EHOAafUsRnq9iv3jSBvK99z8FhauhS36DRSA2Y_WAflcWKi_pL9OVvPn/exec',
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbzEg_QEOv187fsp5t5mBqiqv2K6ZT8smx3xeN5rqDE6JqX3cPwuWeyHvPGGCk9P5b9Z/exec',
   // Solo el ID de la hoja, no la URL completahttps
   SHEET_ID: '1kwnCBSwNL6qWuXVKfj2LLKKeM3uxNQIZZ3VWAYCdmLI'
 };
