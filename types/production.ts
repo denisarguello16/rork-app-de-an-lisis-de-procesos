@@ -95,14 +95,12 @@ export interface SetupTimeData {
 
 export type PackagingMachine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'CRYOVAC VS';
 
-export type MonitoredResource = 'Sierra 1' | 'Sierra 2' | 'Sierra 3' | 'Indicador 30' | 'Indicador 40' | 'Indicador 70' | 'Indicador 80';
-
 export interface CycleTimeData {
   id: string;
   inspector: string;
   timestamp: Date;
   productName: string;
-  monitoredResource: MonitoredResource;
+  packagingMachine: PackagingMachine;
   cycleTime: number;
   observations?: string;
 }

@@ -55,7 +55,7 @@ export default function CycleTimeRecordsScreen() {
             <Timer size={48} color={Colors.light.textSecondary} />
             <Text style={styles.emptyTitle}>No hay registros</Text>
             <Text style={styles.emptyText}>
-              Comienza a registrar los tiempos de ciclo de los recursos monitoreados
+              Comienza a registrar los tiempos de ciclo de las máquinas empacadoras
             </Text>
             <Button
               title="Agregar Registro"
@@ -77,8 +77,8 @@ export default function CycleTimeRecordsScreen() {
 
             <View style={styles.recordBody}>
               <View style={styles.recordRow}>
-                <Text style={styles.recordLabel}>Recurso Monitoreado:</Text>
-                <Text style={styles.recordValue}>{record.monitoredResource}</Text>
+                <Text style={styles.recordLabel}>Máquina:</Text>
+                <Text style={styles.recordValue}>{record.packagingMachine}</Text>
               </View>
 
               <View style={styles.recordRow}>
