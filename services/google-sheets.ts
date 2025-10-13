@@ -51,11 +51,10 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
       }
     };
 
-    // Add timeout and better error handling
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 10000); // 10 second timeout
+    }, 10000);
 
     let response;
     try {
@@ -68,17 +67,35 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
         body: JSON.stringify(testPayload),
         signal: controller.signal
       });
-    } finally {
       clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError instanceof Error) {
+        if (fetchError.name === 'AbortError') {
+          return {
+            success: false,
+            error: 'Tiempo de espera agotado',
+            details: 'La conexión tardó más de 10 segundos. Verifica tu conexión a internet.'
+          };
+        }
+        
+        if (fetchError.message.includes('Failed to fetch')) {
+          return {
+            success: false,
+            error: 'No se pudo conectar con Google Sheets',
+            details: 'Verifica tu conexión a internet o que el script esté desplegado correctamente.'
+          };
+        }
+      }
+      
+      throw fetchError;
     }
 
-    // With no-cors mode, we can't read the response, but we can check if the request was sent
-    // If we get here without an error, the endpoint is reachable
     if (response.type === 'opaque') {
-      // Request was sent successfully with no-cors
       return {
         success: true,
-        message: 'Conexión exitosa con Google Sheets (modo no-cors)',
+        message: 'Conexión exitosa con Google Sheets',
         details: 'El endpoint está accesible. Los datos se enviarán correctamente.'
       };
     }
@@ -89,16 +106,15 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
       return {
         success: false,
         error: `Error HTTP ${response.status}: ${response.statusText}`,
-        details: `Respuesta del servidor: ${responseText.substring(0, 500)}...`
+        details: `Respuesta del servidor: ${responseText.substring(0, 500)}`
       };
     }
 
-    // Check if response is HTML (common when script URL is wrong)
     if (responseText.trim().startsWith('<')) {
       return {
         success: false,
-        error: 'El servidor devolvió HTML en lugar de JSON. Verifica que la URL del script sea correcta y esté desplegado como Web App.',
-        details: `Respuesta HTML recibida: ${responseText.substring(0, 200)}...`
+        error: 'El servidor devolvió HTML en lugar de JSON',
+        details: 'Verifica que la URL del script sea correcta y esté desplegado como Web App.'
       };
     }
 
@@ -113,34 +129,33 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
       return {
         success: false,
         error: 'Respuesta no es JSON válido',
-        details: `Error de parsing: ${parseError}\nRespuesta: ${responseText.substring(0, 200)}...`
+        details: `Respuesta: ${responseText.substring(0, 200)}`
       };
     }
   } catch (error) {
-    console.error('❌ Error en diagnóstico:', error);
+    console.error('Error en diagnóstico:', error);
     
-    // Handle specific error types with better user messages
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         return {
           success: false,
-          error: 'Tiempo de espera agotado al conectar con Google Sheets',
-          details: 'La conexión tardó más de 10 segundos. Verifica tu conexión a internet.'
+          error: 'Tiempo de espera agotado',
+          details: 'La conexión tardó más de 10 segundos.'
         };
       }
       
-      if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+      if (error.message.includes('Failed to fetch')) {
         return {
           success: false,
-          error: 'Error de conexión con Google Sheets',
-          details: 'Posibles causas:\n1. Sin conexión a internet\n2. El script de Google Apps no está desplegado correctamente\n3. La URL del endpoint es incorrecta\n4. Problemas de CORS (el script debe estar desplegado como "Anyone" puede acceder)'
+          error: 'Error de conexión',
+          details: 'No se pudo conectar con Google Sheets. Verifica tu conexión a internet.'
         };
       }
       
       if (error.message.includes('NetworkError') || error.message.includes('network')) {
         return {
           success: false,
-          error: 'Error de red al conectar con Google Sheets',
+          error: 'Error de red',
           details: 'Problema de conectividad. Los datos se guardarán localmente.'
         };
       }
@@ -148,8 +163,8 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
     
     return {
       success: false,
-      error: 'Error de conexión con Google Sheets',
-      details: `Los datos se guardarán localmente. Error: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      error: 'Error de conexión',
+      details: 'Los datos se guardarán localmente.'
     };
   }
 };
