@@ -22,9 +22,9 @@ const REJECTION_CAUSES = [
   'Incumplimiento de Rango de Peso',
   'Presencia de Pelo',
   'Presencia de Trauma',
-  'Presencia de Cartílago'
-  'Presencia de Material Extraño'
-  'Exceso de Grasa'
+  'Presencia de Cartílago',
+  'Presencia de Material Extraño',
+  'Exceso de Grasa',
 	'Residuos de Tape en Film'
 ];
 
