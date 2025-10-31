@@ -22,6 +22,9 @@ export interface CapacityData {
   resourceType: string;
   resourceName: string;
   productName: string;
+  productCode?: string;
+  line?: string;
+  stage?: string;
   packageSize: string;
   peopleCount: number;
   piecesProduced: number;
@@ -36,6 +39,13 @@ export interface UtilizationData {
   resourceType: string;
   resourceName: string;
   productName: string;
+  line?: string;
+  productState?: ProductState;
+  productConfig?: ProductConfig;
+  packagingType?: PackagingType;
+  hasIndividualWeightLabel?: boolean;
+  productCode?: string;
+  packaging?: string;
   availableTime: number;
   productiveTime: number;
   utilizationPercentage: number;

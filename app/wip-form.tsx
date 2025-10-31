@@ -7,24 +7,25 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { SearchablePicker } from '@/components/ui/SearchablePicker';
-import { QUEUE_STAGES } from '@/constants/production';
+import { Picker } from '@/components/ui/Picker';
+import { QUEUE_STAGES, PRODUCTION_LINES, PRODUCT_STATES, PRODUCT_CONFIGS, PACKAGING_TYPES } from '@/constants/production';
 import { PRODUCT_NAMES } from '@/constants/product-names';
 import { getNicaraguaTime } from '@/constants/timezone';
+import { ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
 
 export default function WIPFormScreen() {
   const insets = useSafeAreaInsets();
   const {
     inspector,
-    selectedLine,
-    selectedProductState,
-    selectedProductConfig,
-    selectedPackagingType,
-    hasIndividualWeightLabel,
     addWipRecord,
-
   } = useProductionStore();
 
   const [formData, setFormData] = React.useState({
+    line: '' as ProductionLine | '',
+    productState: '' as ProductState | '',
+    productConfig: '' as ProductConfig | '',
+    packagingType: '' as PackagingType | '',
+    hasIndividualWeightLabel: false,
     productName: '',
     queueBeforePortioning: '',
     queueBeforePackaging: '',
@@ -43,14 +44,30 @@ export default function WIPFormScreen() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
+    if (!formData.line) {
+      newErrors.line = 'La línea de producción es obligatoria';
+    }
+
+    if (!formData.productState) {
+      newErrors.productState = 'El estado del producto es obligatorio';
+    }
+
+    if (!formData.productConfig) {
+      newErrors.productConfig = 'La configuración del producto es obligatoria';
+    }
+
+    if (!formData.packagingType) {
+      newErrors.packagingType = 'El tipo de empaque es obligatorio';
+    }
+
     if (!formData.productName.trim()) {
       newErrors.productName = 'El producto monitoreado es obligatorio';
     }
 
     // Validar todas las colas
     QUEUE_STAGES.forEach(queue => {
-      const value = formData[queue.key as keyof typeof formData];
-      if (!value.trim()) {
+      const value = formData[queue.key as 'queueBeforePortioning' | 'queueBeforePackaging' | 'queueBeforeIndividualLabeling' | 'queueBeforeBoxClosure' | 'queueBeforeBoxStrapping'];
+      if (!value || !value.trim()) {
         newErrors[queue.key] = 'Este campo es obligatorio';
       } else {
         const count = parseInt(value);
@@ -76,11 +93,11 @@ export default function WIPFormScreen() {
     const record = {
       inspector: inspector!.name,
       timestamp: getNicaraguaTime(),
-      line: selectedLine!,
-      productState: selectedProductState!,
-      productConfig: selectedProductConfig!,
-      packagingType: selectedPackagingType!,
-      hasIndividualWeightLabel: hasIndividualWeightLabel!,
+      line: formData.line as ProductionLine,
+      productState: formData.productState as ProductState,
+      productConfig: formData.productConfig as ProductConfig,
+      packagingType: formData.packagingType as PackagingType,
+      hasIndividualWeightLabel: formData.hasIndividualWeightLabel,
       productCode: '',
       productName: formData.productName,
       packaging: '',
@@ -94,6 +111,11 @@ export default function WIPFormScreen() {
     await addWipRecord(record);
 
     setFormData({
+      line: '' as ProductionLine | '',
+      productState: '' as ProductState | '',
+      productConfig: '' as ProductConfig | '',
+      packagingType: '' as PackagingType | '',
+      hasIndividualWeightLabel: false,
       productName: '',
       queueBeforePortioning: '',
       queueBeforePackaging: '',
@@ -106,7 +128,7 @@ export default function WIPFormScreen() {
 
   const getTotalWIP = () => {
     return QUEUE_STAGES.reduce((total, queue) => {
-      const value = formData[queue.key as keyof typeof formData];
+      const value = formData[queue.key as 'queueBeforePortioning' | 'queueBeforePackaging' | 'queueBeforeIndividualLabeling' | 'queueBeforeBoxClosure' | 'queueBeforeBoxStrapping'];
       const count = parseInt(value) || 0;
       return total + count;
     }, 0);
@@ -121,6 +143,62 @@ export default function WIPFormScreen() {
       />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Card>
+          <Text style={styles.sectionTitle}>Configuración de Línea</Text>
+          
+          <Picker
+            label="Línea de Producción"
+            value={formData.line}
+            options={PRODUCTION_LINES.map(line => ({ key: line.key, label: line.label }))}
+            onSelect={(value) => setFormData(prev => ({ ...prev, line: value as ProductionLine }))}
+            placeholder="Seleccionar línea..."
+            required
+            error={errors.line}
+          />
+
+          <Picker
+            label="Estado del Producto"
+            value={formData.productState}
+            options={PRODUCT_STATES.map(state => ({ key: state.key, label: state.label }))}
+            onSelect={(value) => setFormData(prev => ({ ...prev, productState: value as ProductState }))}
+            placeholder="Seleccionar estado..."
+            required
+            error={errors.productState}
+          />
+
+          <Picker
+            label="Configuración del Producto"
+            value={formData.productConfig}
+            options={PRODUCT_CONFIGS.map(config => ({ key: config.key, label: config.label }))}
+            onSelect={(value) => setFormData(prev => ({ ...prev, productConfig: value as ProductConfig }))}
+            placeholder="Seleccionar configuración..."
+            required
+            error={errors.productConfig}
+          />
+
+          <Picker
+            label="Tipo de Empaque"
+            value={formData.packagingType}
+            options={PACKAGING_TYPES.map(type => ({ key: type.key, label: type.label }))}
+            onSelect={(value) => setFormData(prev => ({ ...prev, packagingType: value as PackagingType }))}
+            placeholder="Seleccionar tipo..."
+            required
+            error={errors.packagingType}
+          />
+
+          <Picker
+            label="¿Tiene etiqueta de peso individual?"
+            value={formData.hasIndividualWeightLabel ? 'yes' : 'no'}
+            options={[
+              { key: 'yes', label: 'Sí' },
+              { key: 'no', label: 'No' },
+            ]}
+            onSelect={(value) => setFormData(prev => ({ ...prev, hasIndividualWeightLabel: value === 'yes' }))}
+            placeholder="Seleccionar..."
+            required
+          />
+        </Card>
+
         <Card>
           <Text style={styles.sectionTitle}>Información del Producto</Text>
           
@@ -145,7 +223,7 @@ export default function WIPFormScreen() {
             <Input
               key={queue.key}
               label={queue.label}
-              value={formData[queue.key as keyof typeof formData]}
+              value={formData[queue.key as 'queueBeforePortioning' | 'queueBeforePackaging' | 'queueBeforeIndividualLabeling' | 'queueBeforeBoxClosure' | 'queueBeforeBoxStrapping']}
               onChangeText={(value) => setFormData(prev => ({ ...prev, [queue.key]: value }))}
               placeholder="Ej: 25"
               keyboardType="numeric"
