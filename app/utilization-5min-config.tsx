@@ -38,7 +38,7 @@ export default function Utilization5minConfigScreen() {
     <View style={styles.container}>
       <Stack.Screen 
         options={{ 
-          title: 'Configurar Ventana 5\'',
+          title: 'Configurar Medición',
           headerLeft: () => (
             <Button
               title="Atrás"
@@ -54,9 +54,9 @@ export default function Utilization5minConfigScreen() {
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}>
         <Card style={styles.card}>
           <View style={styles.header}>
-            <Text style={styles.title}>Configuración de Ventana</Text>
+            <Text style={styles.title}>Configuración de Medición</Text>
             <Text style={styles.subtitle}>
-              Configure los parámetros antes de iniciar el cronómetro de 5 minutos
+              Configure los parámetros antes de iniciar la medición de 5 minutos
             </Text>
           </View>
 

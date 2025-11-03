@@ -1,4 +1,4 @@
-import { CapacityData, UtilizationData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
 import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 
 // Google Sheets configuration
@@ -447,13 +447,11 @@ export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<Go
 };
 
 // Function to save data with fallback to local storage
-export const saveDataWithFallback = async (data: CapacityData | UtilizationData | RejectionData | SetupTimeData | CycleTimeData, type: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time'): Promise<GoogleSheetsResponse> => {
+export const saveDataWithFallback = async (data: CapacityData | RejectionData | SetupTimeData | CycleTimeData, type: 'capacity' | 'rejection' | 'setup' | 'cycle-time'): Promise<GoogleSheetsResponse> => {
   try {
     // Try to save to Google Sheets first
     const result = type === 'capacity' 
       ? await saveCapacityDataToSheets(data as CapacityData)
-      : type === 'utilization'
-      ? await saveUtilizationDataToSheets(data as UtilizationData)
       : type === 'rejection'
       ? await saveRejectionDataToSheets(data as RejectionData)
       : type === 'setup'
@@ -574,98 +572,7 @@ export const saveCapacityDataToSheets = async (data: CapacityData): Promise<Goog
   }
 };
 
-// Function to save utilization data to Google Sheets
-export const saveUtilizationDataToSheets = async (data: UtilizationData): Promise<GoogleSheetsResponse> => {
-  // Check if Google Sheets is configured
-  if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
-  }
 
-  try {
-    const payload = {
-      type: 'utilization',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        resourceType: data.resourceType,
-        resourceName: data.resourceName,
-        productName: data.productName,
-        availableTime: data.availableTime,
-        productiveTime: data.productiveTime,
-        utilizationPercentage: data.utilizationPercentage,
-        observations: data.observations
-      }
-    };
-
-    // Add timeout to the fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-    }
-
-    const responseText = await response.text();
-    
-    // Check if response is HTML (indicates wrong URL or deployment issue)
-    if (responseText.trim().startsWith('<')) {
-      throw new Error('El servidor devolvió HTML. Verifica la configuración del Google Apps Script.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch (parseError) {
-      throw new Error(`Respuesta no es JSON válido: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.error('Error saving utilization data to Google Sheets:', error);
-    
-    // Handle different types of errors
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Request timeout: Google Sheets took too long to respond. Data saved locally.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Network error: Unable to connect to Google Sheets. Please check your internet connection. Data saved locally.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: `Google Sheets error: ${error.message}. Data saved locally.`
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Unknown error occurred while saving to Google Sheets. Data saved locally.'
-    };
-  }
-};
 
 // Function to create the Google Apps Script code (for reference)
 export const getGoogleAppsScriptCode = () => {

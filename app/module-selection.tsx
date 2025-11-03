@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { BarChart3, ClipboardList, XCircle, Clock, Package, Timer } from 'lucide-react-native';
+import { BarChart3, XCircle, Clock, Package, Timer } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,8 +11,8 @@ import { Colors } from '@/constants/colors';
 export default function ModuleSelectionScreen() {
   const { inspector, setSelectedModule, clearSession } = useProductionStore();
 
-  const handleModuleSelect = (module: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min') => {
-    if (!module || !['capacity', 'utilization', 'wip', 'rejection', 'setup', 'cycle-time', 'utilization-5min'].includes(module)) {
+  const handleModuleSelect = (module: 'capacity' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min') => {
+    if (!module || !['capacity', 'wip', 'rejection', 'setup', 'cycle-time', 'utilization-5min'].includes(module)) {
       return;
     }
     setSelectedModule(module);
@@ -21,8 +21,6 @@ export default function ModuleSelectionScreen() {
       router.push('/rejection-form');
     } else if (module === 'setup') {
       router.push('/setup-time-form');
-    } else if (module === 'utilization') {
-      router.push('/utilization-form');
     } else if (module === 'wip') {
       router.push('/wip-form');
     } else if (module === 'capacity') {
@@ -90,39 +88,16 @@ export default function ModuleSelectionScreen() {
           />
         </Card>
 
-        <Card style={styles.moduleCard}>
-          <View style={styles.moduleHeader}>
-            <ClipboardList size={40} color={Colors.light.primary} />
-            <Text style={styles.moduleTitle}>Estimación de Utilización</Text>
-          </View>
-          
-          <Text style={styles.moduleDescription}>
-            Evaluación de utilización por etapa del proceso:
-          </Text>
-          
-          <View style={styles.featureList}>
-            <Text style={styles.feature}>• Medir tiempo productivo vs disponible</Text>
-            <Text style={styles.feature}>• Intervalos de 5 minutos, 6 veces al día</Text>
-            <Text style={styles.feature}>• Calcular porcentaje de utilización</Text>
-            <Text style={styles.feature}>• Identificar tiempos no productivos</Text>
-            <Text style={styles.feature}>• Determinar capacidad ideal del proceso</Text>
-          </View>
 
-          <Button
-            title="Seleccionar Módulo"
-            onPress={() => handleModuleSelect('utilization')}
-            style={styles.selectButton}
-          />
-        </Card>
 
         <Card style={styles.moduleCard}>
           <View style={styles.moduleHeader}>
             <Timer size={40} color="#3b82f6" />
-            <Text style={styles.moduleTitle}>Utilización 5' (Ventanas)</Text>
+            <Text style={styles.moduleTitle}>Estimación de Productividad</Text>
           </View>
           
           <Text style={styles.moduleDescription}>
-            Medición de utilización en ventanas de 5 minutos:
+            Medición de productividad en ventanas de 5 minutos:
           </Text>
           
           <View style={styles.featureList}>

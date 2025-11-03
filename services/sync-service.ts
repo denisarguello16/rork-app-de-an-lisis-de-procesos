@@ -1,9 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { CapacityData, UtilizationData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
 import { 
   saveCapacityDataToSheets, 
-  saveUtilizationDataToSheets, 
   saveRejectionDataToSheets, 
   saveSetupTimeDataToSheets,
   saveCycleTimeDataToSheets,
@@ -13,8 +12,8 @@ import { getNicaraguaTime } from '@/constants/timezone';
 
 interface PendingSyncItem {
   id: string;
-  type: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time';
-  data: CapacityData | UtilizationData | RejectionData | SetupTimeData | CycleTimeData;
+  type: 'capacity' | 'rejection' | 'setup' | 'cycle-time';
+  data: CapacityData | RejectionData | SetupTimeData | CycleTimeData;
   timestamp: string;
   attempts: number;
 }
@@ -74,8 +73,8 @@ class SyncService {
 
   // Add item to pending sync queue
   async addToPendingSync(
-    type: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time',
-    data: CapacityData | UtilizationData | RejectionData | SetupTimeData | CycleTimeData
+    type: 'capacity' | 'rejection' | 'setup' | 'cycle-time',
+    data: CapacityData | RejectionData | SetupTimeData | CycleTimeData
   ): Promise<void> {
     try {
       const storage = this.getStorage();
@@ -253,9 +252,6 @@ class SyncService {
       switch (item.type) {
         case 'capacity':
           result = await saveCapacityDataToSheets(item.data as CapacityData);
-          break;
-        case 'utilization':
-          result = await saveUtilizationDataToSheets(item.data as UtilizationData);
           break;
         case 'rejection':
           result = await saveRejectionDataToSheets(item.data as RejectionData);

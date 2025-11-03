@@ -32,25 +32,7 @@ export interface CapacityData {
   piecesPerMinute: number;
 }
 
-export interface UtilizationData {
-  id: string;
-  inspector: string;
-  timestamp: Date;
-  resourceType: string;
-  resourceName: string;
-  productName: string;
-  line?: string;
-  productState?: ProductState;
-  productConfig?: ProductConfig;
-  packagingType?: PackagingType;
-  hasIndividualWeightLabel?: boolean;
-  productCode?: string;
-  packaging?: string;
-  availableTime: number;
-  productiveTime: number;
-  utilizationPercentage: number;
-  observations?: string;
-}
+
 
 
 
@@ -134,9 +116,8 @@ export interface Window5minData {
 
 export interface ProductionStore {
   inspector: Inspector | null;
-  selectedModule: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
+  selectedModule: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
   capacityRecords: CapacityData[];
-  utilizationRecords: UtilizationData[];
   rejectionRecords: RejectionData[];
   setupTimeRecords: SetupTimeData[];
   cycleTimeRecords: CycleTimeData[];

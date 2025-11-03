@@ -81,7 +81,7 @@ export default function Utilization5minRecordsScreen() {
     <View style={styles.container}>
       <Stack.Screen 
         options={{ 
-          title: 'Ventanas 5 min',
+          title: 'Estimación de Productividad',
           headerRight: () => (
             <Button
               title="Nueva"
@@ -96,12 +96,12 @@ export default function Utilization5minRecordsScreen() {
       {sortedRecords.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Clock size={64} color={Colors.light.border} />
-          <Text style={styles.emptyTitle}>No hay ventanas registradas</Text>
+          <Text style={styles.emptyTitle}>No hay registros de productividad</Text>
           <Text style={styles.emptyText}>
-            Registre su primera ventana de 5 minutos para medir utilización y capacidad
+            Registre su primera ventana de 5 minutos para medir productividad
           </Text>
           <Button
-            title="Registrar Primera Ventana"
+            title="Registrar Primera Medición"
             onPress={handleAddRecord}
             style={styles.emptyButton}
           />
