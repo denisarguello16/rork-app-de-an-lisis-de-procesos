@@ -107,9 +107,9 @@ export default function HomeScreen() {
 
           <Card style={styles.moduleCard}>
             <ClipboardList size={32} color={Colors.light.primary} />
-            <Text style={styles.moduleTitle}>Análisis de Utilización y WIP</Text>
+            <Text style={styles.moduleTitle}>Análisis de Utilización</Text>
             <Text style={styles.moduleDescription}>
-              Monitoreo de colas y trabajo en proceso entre estaciones
+              Monitoreo de tiempos de producción entre estaciones
             </Text>
           </Card>
 
