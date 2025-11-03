@@ -21,7 +21,7 @@ const initialState: ProductionStore = {
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
   const [inspector, setInspectorState] = useState<Inspector | null>(initialState.inspector);
-  const [selectedModule, setSelectedModule] = useState<'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null>(initialState.selectedModule);
+  const [selectedModule, setSelectedModule] = useState<'capacity' | 'rejection' | 'setup' | 'utilization-5min' | null>(initialState.selectedModule);
   const [capacityRecords, setCapacityRecords] = useState<CapacityData[]>(initialState.capacityRecords);
 
   const [rejectionRecords, setRejectionRecords] = useState<RejectionData[]>(initialState.rejectionRecords);

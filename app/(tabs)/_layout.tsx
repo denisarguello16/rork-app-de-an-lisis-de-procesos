@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Factory, BarChart3, Clock, AlertTriangle, Timer, Activity } from "lucide-react-native";
+import { Factory, BarChart3, Clock, AlertTriangle, Activity } from "lucide-react-native";
 import React from "react";
 
 import { Colors } from "@/constants/colors";
@@ -48,13 +48,6 @@ function RootLayoutNav() {
         options={{
           title: "Resumen Rechazos",
           tabBarIcon: ({ color }) => <AlertTriangle color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="cycle-time-records"
-        options={{
-          title: "Tiempos de Ciclo",
-          tabBarIcon: ({ color }) => <Timer color={color} />,
         }}
       />
       <Tabs.Screen

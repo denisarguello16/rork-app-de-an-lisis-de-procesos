@@ -116,7 +116,7 @@ export interface Window5minData {
 
 export interface ProductionStore {
   inspector: Inspector | null;
-  selectedModule: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
+  selectedModule: 'capacity' | 'rejection' | 'setup' | 'utilization-5min' | null;
   capacityRecords: CapacityData[];
   rejectionRecords: RejectionData[];
   setupTimeRecords: SetupTimeData[];
