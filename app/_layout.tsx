@@ -72,7 +72,10 @@ export default function RootLayout() {
       });
     }, 5000);
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      syncService.stopAutoSync();
+    };
   }, []);
 
   return (

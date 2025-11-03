@@ -34,6 +34,7 @@ class SyncService {
   private syncStatusKey = 'sync-status';
   private maxRetries = 3;
   private syncInProgress = false;
+  private syncInterval: NodeJS.Timeout | null = null;
 
   static getInstance(): SyncService {
     if (!SyncService.instance) {
@@ -288,13 +289,16 @@ class SyncService {
   // Start automatic sync when connection is detected
   async startAutoSync(): Promise<void> {
     try {
+      // Stop existing interval if any
+      this.stopAutoSync();
+      
       // Initial sync attempt (non-blocking)
       this.syncPendingItems().catch(error => {
         console.log('⚠️ Initial sync skipped:', error);
       });
       
       // Set up periodic sync every 30 seconds
-      setInterval(async () => {
+      this.syncInterval = setInterval(async () => {
         try {
           const pendingItems = await this.getPendingSyncItems();
           if (pendingItems.length > 0) {
@@ -311,6 +315,15 @@ class SyncService {
       }, 30000); // 30 seconds
     } catch (error) {
       console.log('⚠️ Auto-sync setup failed:', error);
+    }
+  }
+
+  // Stop automatic sync
+  stopAutoSync(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+      console.log('🛑 Auto-sync stopped');
     }
   }
 
