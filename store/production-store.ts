@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
@@ -106,7 +106,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('capacity', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('capacity', newRecord);
     }
     
@@ -131,7 +131,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('rejection', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('rejection', newRecord);
     }
     
@@ -154,7 +154,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('setup', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('setup', newRecord);
     }
     
@@ -251,7 +251,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     loadFromStorage();
   }, [loadFromStorage]);
 
-  return useMemo(() => ({
+  return {
     inspector,
     selectedModule,
     capacityRecords,
@@ -269,23 +269,5 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     clearSession,
     loadFromStorage,
     saveToStorage,
-  }), [
-    inspector,
-    selectedModule,
-    capacityRecords,
-    rejectionRecords,
-    setupTimeRecords,
-    window5minRecords,
-    productCatalog,
-    setInspector,
-    setSelectedModule,
-    addCapacityRecord,
-    addRejectionRecord,
-    addSetupTimeRecord,
-    addWindow5minRecord,
-    getProductByCode,
-    clearSession,
-    loadFromStorage,
-    saveToStorage,
-  ]);
+  };
 });
