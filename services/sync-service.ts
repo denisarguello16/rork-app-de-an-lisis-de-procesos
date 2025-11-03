@@ -33,7 +33,7 @@ class SyncService {
   private syncStatusKey = 'sync-status';
   private maxRetries = 3;
   private syncInProgress = false;
-  private syncInterval: NodeJS.Timeout | null = null;
+  private syncInterval: ReturnType<typeof setInterval> | null = null;
 
   static getInstance(): SyncService {
     if (!SyncService.instance) {
