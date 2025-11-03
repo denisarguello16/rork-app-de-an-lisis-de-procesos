@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Cloud, CloudOff, RefreshCw, Wifi, WifiOff, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { syncService } from '@/services/sync-service';
-import Colors from '@/constants/colors';
+import { Colors } from '@/constants/colors';
 
 const COLORS = Colors.light;
 
