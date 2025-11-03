@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-import { ProductionStore, Inspector, CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData } from '@/types/production';
+import { ProductionStore, Inspector, CapacityData, RejectionData, SetupTimeData, Window5minData } from '@/types/production';
 import { PRODUCT_CATALOG } from '@/constants/production';
-import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets } from '@/services/google-sheets';
+import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
 
@@ -14,7 +14,6 @@ const initialState: ProductionStore = {
   capacityRecords: [],
   rejectionRecords: [],
   setupTimeRecords: [],
-  cycleTimeRecords: [],
   window5minRecords: [],
   productCatalog: PRODUCT_CATALOG,
 };
@@ -26,7 +25,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
 
   const [rejectionRecords, setRejectionRecords] = useState<RejectionData[]>(initialState.rejectionRecords);
   const [setupTimeRecords, setSetupTimeRecords] = useState<SetupTimeData[]>(initialState.setupTimeRecords);
-  const [cycleTimeRecords, setCycleTimeRecords] = useState<CycleTimeData[]>(initialState.cycleTimeRecords);
   const [window5minRecords, setWindow5minRecords] = useState<Window5minData[]>(initialState.window5minRecords);
   const [productCatalog] = useState(PRODUCT_CATALOG);
 
@@ -68,7 +66,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
         capacityRecords,
         rejectionRecords,
         setupTimeRecords,
-        cycleTimeRecords,
         window5minRecords,
         lastSaved: getNicaraguaTime().toISOString(),
       };
@@ -76,7 +73,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     } catch (error) {
       console.error('❌ Error saving to storage:', error);
     }
-  }, [inspector, capacityRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, getStorage]);
+  }, [inspector, capacityRecords, rejectionRecords, setupTimeRecords, window5minRecords, getStorage]);
 
   const setInspector = useCallback((inspector: Inspector) => {
     if (!inspector || !inspector.name || inspector.name.length > 100) {
@@ -164,27 +161,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
   }, [saveToStorage]);
 
-  const addCycleTimeRecord = useCallback(async (record: Omit<CycleTimeData, 'id'>) => {
-    const newRecord: CycleTimeData = {
-      ...record,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-    
-    setCycleTimeRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
-    
-    try {
-      const result = await saveCycleTimeDataToSheets(newRecord);
-      if (!result.success) {
-        await syncService.addToPendingSync('cycle-time', newRecord);
-      }
-    } catch (error) {
-      await syncService.addToPendingSync('cycle-time', newRecord);
-    }
-    
-    return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
-
   const addWindow5minRecord = useCallback(async (record: Omit<Window5minData, 'id'>) => {
     const newRecord: Window5minData = {
       ...record,
@@ -253,12 +229,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
           timestamp: new Date(record.timestamp),
         })));
       }
-      if (Array.isArray(data.cycleTimeRecords)) {
-        setCycleTimeRecords(data.cycleTimeRecords.map((record: any) => ({
-          ...record,
-          timestamp: new Date(record.timestamp),
-        })));
-      }
       if (Array.isArray(data.window5minRecords)) {
         setWindow5minRecords(data.window5minRecords.map((record: any) => ({
           ...record,
@@ -287,7 +257,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     capacityRecords,
     rejectionRecords,
     setupTimeRecords,
-    cycleTimeRecords,
     window5minRecords,
     productCatalog,
     setInspector,
@@ -295,7 +264,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addCapacityRecord,
     addRejectionRecord,
     addSetupTimeRecord,
-    addCycleTimeRecord,
     addWindow5minRecord,
     getProductByCode,
     clearSession,
@@ -307,7 +275,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     capacityRecords,
     rejectionRecords,
     setupTimeRecords,
-    cycleTimeRecords,
     window5minRecords,
     productCatalog,
     setInspector,
@@ -315,7 +282,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addCapacityRecord,
     addRejectionRecord,
     addSetupTimeRecord,
-    addCycleTimeRecord,
     addWindow5minRecord,
     getProductByCode,
     clearSession,

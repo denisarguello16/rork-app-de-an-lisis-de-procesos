@@ -1,19 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { CapacityData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, RejectionData, SetupTimeData } from '@/types/production';
 import { 
   saveCapacityDataToSheets, 
   saveRejectionDataToSheets, 
   saveSetupTimeDataToSheets,
-  saveCycleTimeDataToSheets,
   testGoogleSheetsConnection
 } from './google-sheets';
 import { getNicaraguaTime } from '@/constants/timezone';
 
 interface PendingSyncItem {
   id: string;
-  type: 'capacity' | 'rejection' | 'setup' | 'cycle-time';
-  data: CapacityData | RejectionData | SetupTimeData | CycleTimeData;
+  type: 'capacity' | 'rejection' | 'setup';
+  data: CapacityData | RejectionData | SetupTimeData;
   timestamp: string;
   attempts: number;
 }
@@ -73,8 +72,8 @@ class SyncService {
 
   // Add item to pending sync queue
   async addToPendingSync(
-    type: 'capacity' | 'rejection' | 'setup' | 'cycle-time',
-    data: CapacityData | RejectionData | SetupTimeData | CycleTimeData
+    type: 'capacity' | 'rejection' | 'setup',
+    data: CapacityData | RejectionData | SetupTimeData
   ): Promise<void> {
     try {
       const storage = this.getStorage();
@@ -258,9 +257,6 @@ class SyncService {
           break;
         case 'setup':
           result = await saveSetupTimeDataToSheets(item.data as SetupTimeData);
-          break;
-        case 'cycle-time':
-          result = await saveCycleTimeDataToSheets(item.data as CycleTimeData);
           break;
         default:
           throw new Error(`Unknown sync type: ${item.type}`);

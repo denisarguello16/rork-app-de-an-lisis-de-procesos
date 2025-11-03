@@ -68,29 +68,6 @@ export interface SetupTimeData {
   description?: string;
 }
 
-export type PackagingMachine = 
-  | 'ULMA 1 (Central)' 
-  | 'ULMA 2 (Izquierda)' 
-  | 'Multivac R-105' 
-  | 'VS-95'
-  | 'Sierra 1'
-  | 'Sierra 2'
-  | 'Sierra 3'
-  | 'Indicador 30'
-  | 'Indicador 40'
-  | 'Indicador 70'
-  | 'Indicador 80';
-
-export interface CycleTimeData {
-  id: string;
-  inspector: string;
-  timestamp: Date;
-  productName: string;
-  packagingMachine: PackagingMachine;
-  cycleTime: number;
-  observations?: string;
-}
-
 export type WindowState = 'RUN' | 'STARVED' | 'BLOCKED' | 'SETUP' | 'AJUSTE' | 'SANIT' | 'FALLA' | 'LOGÍSTICA' | 'OTROS';
 
 export type OutputUnit = 'piezas' | 'cajas';
@@ -120,7 +97,6 @@ export interface ProductionStore {
   capacityRecords: CapacityData[];
   rejectionRecords: RejectionData[];
   setupTimeRecords: SetupTimeData[];
-  cycleTimeRecords: CycleTimeData[];
   window5minRecords: Window5minData[];
   productCatalog: ProductCatalog[];
 }
