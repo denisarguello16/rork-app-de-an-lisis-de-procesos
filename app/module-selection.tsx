@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { BarChart3, XCircle, Clock, Package, Timer } from 'lucide-react-native';
+import { BarChart3, XCircle, Clock, Timer } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,8 +11,8 @@ import { Colors } from '@/constants/colors';
 export default function ModuleSelectionScreen() {
   const { inspector, setSelectedModule, clearSession } = useProductionStore();
 
-  const handleModuleSelect = (module: 'capacity' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min') => {
-    if (!module || !['capacity', 'wip', 'rejection', 'setup', 'cycle-time', 'utilization-5min'].includes(module)) {
+  const handleModuleSelect = (module: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min') => {
+    if (!module || !['capacity', 'rejection', 'setup', 'cycle-time', 'utilization-5min'].includes(module)) {
       return;
     }
     setSelectedModule(module);
@@ -21,8 +21,6 @@ export default function ModuleSelectionScreen() {
       router.push('/rejection-form');
     } else if (module === 'setup') {
       router.push('/setup-time-form');
-    } else if (module === 'wip') {
-      router.push('/wip-form');
     } else if (module === 'capacity') {
       router.push('/capacity-form');
     } else if (module === 'cycle-time') {
@@ -111,31 +109,6 @@ export default function ModuleSelectionScreen() {
           <Button
             title="Seleccionar Módulo"
             onPress={() => handleModuleSelect('utilization-5min')}
-            style={styles.selectButton}
-          />
-        </Card>
-
-        <Card style={styles.moduleCard}>
-          <View style={styles.moduleHeader}>
-            <Package size={40} color="#8b5cf6" />
-            <Text style={styles.moduleTitle}>Registro de WIP</Text>
-          </View>
-          
-          <Text style={styles.moduleDescription}>
-            Control de trabajo en proceso entre estaciones:
-          </Text>
-          
-          <View style={styles.featureList}>
-            <Text style={styles.feature}>• Monitorear colas antes del Porcionado</Text>
-            <Text style={styles.feature}>• Controlar WIP antes del Empaque</Text>
-            <Text style={styles.feature}>• Medir colas antes del Etiquetado</Text>
-            <Text style={styles.feature}>• Registrar WIP antes de Cierre de Caja</Text>
-            <Text style={styles.feature}>• Evaluar flujo entre estaciones</Text>
-          </View>
-
-          <Button
-            title="Seleccionar Módulo"
-            onPress={() => handleModuleSelect('wip')}
             style={styles.selectButton}
           />
         </Card>
