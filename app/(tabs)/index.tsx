@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Logo } from '@/components/ui/Logo';
 import { SyncButton } from '@/components/ui/SyncButton';
-import Colors from '@/constants/colors';
+import { Colors } from '@/constants/colors';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
