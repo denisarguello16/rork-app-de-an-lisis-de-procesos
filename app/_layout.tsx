@@ -69,9 +69,16 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
   useEffect(() => {
-    SplashScreen.hideAsync();
+    const initializeApp = async () => {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        console.log('⚠️ Splash screen error:', error);
+      }
+    };
+
+    initializeApp();
     
-    // Initialize automatic sync service with delay to avoid startup issues
     const timer = setTimeout(() => {
       console.log('🚀 Initializing automatic sync service...');
       syncService.startAutoSync().catch(error => {
