@@ -23,6 +23,13 @@ function RootLayoutNav() {
         }} 
       />
       <Stack.Screen 
+        name="wip-form" 
+        options={{ 
+          title: "Registro de WIP",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
         name="setup-time-form" 
         options={{ 
           title: "Registro de Tiempo de Setup",
@@ -37,23 +44,9 @@ function RootLayoutNav() {
         }} 
       />
       <Stack.Screen 
-        name="rejection-form" 
+        name="utilization-form" 
         options={{ 
-          title: "Registro de Rechazos",
-          presentation: "card"
-        }} 
-      />
-      <Stack.Screen 
-        name="utilization-5min-config" 
-        options={{ 
-          title: "Configurar Medición",
-          presentation: "card"
-        }} 
-      />
-      <Stack.Screen 
-        name="utilization-5min-timer" 
-        options={{ 
-          title: "Medición de 5 Minutos",
+          title: "Registro de Utilización",
           presentation: "card"
         }} 
       />
@@ -69,16 +62,9 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        await SplashScreen.hideAsync();
-      } catch (error) {
-        console.log('⚠️ Splash screen error:', error);
-      }
-    };
-
-    initializeApp();
+    SplashScreen.hideAsync();
     
+    // Initialize automatic sync service with delay to avoid startup issues
     const timer = setTimeout(() => {
       console.log('🚀 Initializing automatic sync service...');
       syncService.startAutoSync().catch(error => {
