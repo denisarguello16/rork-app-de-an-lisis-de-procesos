@@ -23,13 +23,6 @@ function RootLayoutNav() {
         }} 
       />
       <Stack.Screen 
-        name="wip-form" 
-        options={{ 
-          title: "Registro de WIP",
-          presentation: "card"
-        }} 
-      />
-      <Stack.Screen 
         name="setup-time-form" 
         options={{ 
           title: "Registro de Tiempo de Setup",
@@ -44,9 +37,23 @@ function RootLayoutNav() {
         }} 
       />
       <Stack.Screen 
-        name="utilization-form" 
+        name="rejection-form" 
         options={{ 
-          title: "Registro de Utilización",
+          title: "Registro de Rechazos",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="utilization-5min-config" 
+        options={{ 
+          title: "Configurar Medición",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="utilization-5min-timer" 
+        options={{ 
+          title: "Medición de 5 Minutos",
           presentation: "card"
         }} 
       />
