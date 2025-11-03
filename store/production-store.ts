@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-import { ProductionStore, Inspector, CapacityData, UtilizationData, WIPData, RejectionData, SetupTimeData, CycleTimeData, ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
+import { ProductionStore, Inspector, CapacityData, UtilizationData, WIPData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
 import { PRODUCT_CATALOG } from '@/constants/production';
 import { saveCapacityDataToSheets, saveUtilizationDataToSheets, saveRejectionDataToSheets, saveWIPDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
@@ -17,18 +17,20 @@ const initialState: ProductionStore = {
   rejectionRecords: [],
   setupTimeRecords: [],
   cycleTimeRecords: [],
+  window5minRecords: [],
   productCatalog: PRODUCT_CATALOG,
 };
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
   const [inspector, setInspectorState] = useState<Inspector | null>(initialState.inspector);
-  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | null>(initialState.selectedModule);
+  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null>(initialState.selectedModule);
   const [capacityRecords, setCapacityRecords] = useState<CapacityData[]>(initialState.capacityRecords);
   const [utilizationRecords, setUtilizationRecords] = useState<UtilizationData[]>(initialState.utilizationRecords);
   const [wipRecords, setWipRecords] = useState<WIPData[]>(initialState.wipRecords);
   const [rejectionRecords, setRejectionRecords] = useState<RejectionData[]>(initialState.rejectionRecords);
   const [setupTimeRecords, setSetupTimeRecords] = useState<SetupTimeData[]>(initialState.setupTimeRecords);
   const [cycleTimeRecords, setCycleTimeRecords] = useState<CycleTimeData[]>(initialState.cycleTimeRecords);
+  const [window5minRecords, setWindow5minRecords] = useState<Window5minData[]>(initialState.window5minRecords);
   const [productCatalog] = useState(PRODUCT_CATALOG);
 
   // Get storage implementation based on platform
@@ -72,13 +74,14 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
         rejectionRecords,
         setupTimeRecords,
         cycleTimeRecords,
+        window5minRecords,
         lastSaved: getNicaraguaTime().toISOString(),
       };
       await storage.setItem('production-data', JSON.stringify(dataToSave));
     } catch (error) {
       console.error('❌ Error saving to storage:', error);
     }
-  }, [inspector, capacityRecords, utilizationRecords, wipRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, getStorage]);
+  }, [inspector, capacityRecords, utilizationRecords, wipRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, getStorage]);
 
   const setInspector = useCallback((inspector: Inspector) => {
     if (!inspector || !inspector.name || inspector.name.length > 100) {
@@ -231,6 +234,18 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
   }, [saveToStorage]);
 
+  const addWindow5minRecord = useCallback(async (record: Omit<Window5minData, 'id'>) => {
+    const newRecord: Window5minData = {
+      ...record,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    setWindow5minRecords(prev => [...prev, newRecord]);
+    await saveToStorage();
+    
+    return { success: true, message: 'Ventana de 5 minutos guardada localmente.' };
+  }, [saveToStorage]);
+
   const getProductByCode = useCallback((code: string) => {
     const product = productCatalog.find(p => p.code === code);
     return product ? { code: product.code, name: product.name } : null;
@@ -304,6 +319,12 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
           timestamp: new Date(record.timestamp),
         })));
       }
+      if (Array.isArray(data.window5minRecords)) {
+        setWindow5minRecords(data.window5minRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
+      }
     } catch (error) {
       console.error('❌ Error loading from storage:', error);
       try {
@@ -329,6 +350,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     rejectionRecords,
     setupTimeRecords,
     cycleTimeRecords,
+    window5minRecords,
     productCatalog,
     setInspector,
     setSelectedModule,
@@ -338,6 +360,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addRejectionRecord,
     addSetupTimeRecord,
     addCycleTimeRecord,
+    addWindow5minRecord,
     getProductByCode,
     clearSession,
     loadFromStorage,
@@ -351,6 +374,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     rejectionRecords,
     setupTimeRecords,
     cycleTimeRecords,
+    window5minRecords,
     productCatalog,
     setInspector,
     setSelectedModule,
@@ -360,6 +384,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addRejectionRecord,
     addSetupTimeRecord,
     addCycleTimeRecord,
+    addWindow5minRecord,
     getProductByCode,
     clearSession,
     loadFromStorage,

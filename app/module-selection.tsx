@@ -11,8 +11,8 @@ import { Colors } from '@/constants/colors';
 export default function ModuleSelectionScreen() {
   const { inspector, setSelectedModule, clearSession } = useProductionStore();
 
-  const handleModuleSelect = (module: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time') => {
-    if (!module || !['capacity', 'utilization', 'wip', 'rejection', 'setup', 'cycle-time'].includes(module)) {
+  const handleModuleSelect = (module: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min') => {
+    if (!module || !['capacity', 'utilization', 'wip', 'rejection', 'setup', 'cycle-time', 'utilization-5min'].includes(module)) {
       return;
     }
     setSelectedModule(module);
@@ -29,6 +29,8 @@ export default function ModuleSelectionScreen() {
       router.push('/capacity-form');
     } else if (module === 'cycle-time') {
       router.push('/cycle-time-form');
+    } else if (module === 'utilization-5min') {
+      router.push('/utilization-5min-config');
     }
   };
 
@@ -109,6 +111,31 @@ export default function ModuleSelectionScreen() {
           <Button
             title="Seleccionar Módulo"
             onPress={() => handleModuleSelect('utilization')}
+            style={styles.selectButton}
+          />
+        </Card>
+
+        <Card style={styles.moduleCard}>
+          <View style={styles.moduleHeader}>
+            <Timer size={40} color="#3b82f6" />
+            <Text style={styles.moduleTitle}>Utilización 5' (Ventanas)</Text>
+          </View>
+          
+          <Text style={styles.moduleDescription}>
+            Medición de utilización en ventanas de 5 minutos:
+          </Text>
+          
+          <View style={styles.featureList}>
+            <Text style={styles.feature}>• Cronómetro de 5 minutos (countdown)</Text>
+            <Text style={styles.feature}>• 9 estados mutuamente excluyentes</Text>
+            <Text style={styles.feature}>• Contador de output (piezas o cajas)</Text>
+            <Text style={styles.feature}>• Cálculo automático de utilización y capacidad/h</Text>
+            <Text style={styles.feature}>• Validación: suma de segundos = 300</Text>
+          </View>
+
+          <Button
+            title="Seleccionar Módulo"
+            onPress={() => handleModuleSelect('utilization-5min')}
             style={styles.selectButton}
           />
         </Card>

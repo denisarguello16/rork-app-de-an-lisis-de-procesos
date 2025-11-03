@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Factory, BarChart3, ClipboardList, BookOpen, Clock, Package, AlertTriangle, Timer } from "lucide-react-native";
+import { Factory, BarChart3, ClipboardList, BookOpen, Clock, Package, AlertTriangle, Timer, Activity } from "lucide-react-native";
 import React from "react";
 
 import { Colors } from "@/constants/colors";
@@ -76,6 +76,13 @@ function RootLayoutNav() {
         options={{
           title: "Tiempos de Ciclo",
           tabBarIcon: ({ color }) => <Timer color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="utilization-5min-records"
+        options={{
+          title: "Ventanas 5'",
+          tabBarIcon: ({ color }) => <Activity color={color} />,
         }}
       />
 

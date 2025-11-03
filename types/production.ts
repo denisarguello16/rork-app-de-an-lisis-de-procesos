@@ -126,14 +126,38 @@ export interface CycleTimeData {
   observations?: string;
 }
 
+export type WindowState = 'RUN' | 'STARVED' | 'BLOCKED' | 'SETUP' | 'AJUSTE' | 'SANIT' | 'FALLA' | 'LOGÍSTICA' | 'OTROS';
+
+export type OutputUnit = 'piezas' | 'cajas';
+
+export interface StateEvent {
+  state: WindowState;
+  startTime: number;
+  endTime?: number;
+}
+
+export interface Window5minData {
+  id: string;
+  inspector: string;
+  timestamp: Date;
+  stage: string;
+  productFamily: string;
+  outputUnit: OutputUnit;
+  output: number;
+  events: StateEvent[];
+  utilizationPercentage: number;
+  capacityPerHour: number;
+}
+
 export interface ProductionStore {
   inspector: Inspector | null;
-  selectedModule: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | null;
+  selectedModule: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
   capacityRecords: CapacityData[];
   utilizationRecords: UtilizationData[];
   wipRecords: WIPData[];
   rejectionRecords: RejectionData[];
   setupTimeRecords: SetupTimeData[];
   cycleTimeRecords: CycleTimeData[];
+  window5minRecords: Window5minData[];
   productCatalog: ProductCatalog[];
 }
