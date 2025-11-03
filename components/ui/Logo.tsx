@@ -43,7 +43,7 @@ export function Logo({
       
       <View style={[styles.textContainer, variant === 'horizontal' && styles.textHorizontal]}>
         <Text style={[styles.subtitle, { fontSize: config.subtitle }]}>
-          GERENCIA DE PRODUCCIÓN
+          PLANEACIÓN Y ESTRATEGIA
         </Text>
         <Text style={[styles.systemTitle, { fontSize: config.subtitle - 2 }]}>
           Sistema de Análisis de Procesos
