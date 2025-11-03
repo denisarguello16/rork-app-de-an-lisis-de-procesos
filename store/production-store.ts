@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-import { ProductionStore, Inspector, CapacityData, UtilizationData, WIPData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, ProductionLine, ProductState, ProductConfig, PackagingType } from '@/types/production';
+import { ProductionStore, Inspector, CapacityData, UtilizationData, RejectionData, SetupTimeData, CycleTimeData, Window5minData } from '@/types/production';
 import { PRODUCT_CATALOG } from '@/constants/production';
-import { saveCapacityDataToSheets, saveUtilizationDataToSheets, saveRejectionDataToSheets, saveWIPDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets } from '@/services/google-sheets';
+import { saveCapacityDataToSheets, saveUtilizationDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
 
@@ -13,7 +13,6 @@ const initialState: ProductionStore = {
   selectedModule: null,
   capacityRecords: [],
   utilizationRecords: [],
-  wipRecords: [],
   rejectionRecords: [],
   setupTimeRecords: [],
   cycleTimeRecords: [],
@@ -23,10 +22,9 @@ const initialState: ProductionStore = {
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
   const [inspector, setInspectorState] = useState<Inspector | null>(initialState.inspector);
-  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null>(initialState.selectedModule);
+  const [selectedModule, setSelectedModule] = useState<'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null>(initialState.selectedModule);
   const [capacityRecords, setCapacityRecords] = useState<CapacityData[]>(initialState.capacityRecords);
   const [utilizationRecords, setUtilizationRecords] = useState<UtilizationData[]>(initialState.utilizationRecords);
-  const [wipRecords, setWipRecords] = useState<WIPData[]>(initialState.wipRecords);
   const [rejectionRecords, setRejectionRecords] = useState<RejectionData[]>(initialState.rejectionRecords);
   const [setupTimeRecords, setSetupTimeRecords] = useState<SetupTimeData[]>(initialState.setupTimeRecords);
   const [cycleTimeRecords, setCycleTimeRecords] = useState<CycleTimeData[]>(initialState.cycleTimeRecords);
@@ -70,7 +68,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
         inspector,
         capacityRecords,
         utilizationRecords,
-        wipRecords,
         rejectionRecords,
         setupTimeRecords,
         cycleTimeRecords,
@@ -81,7 +78,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     } catch (error) {
       console.error('❌ Error saving to storage:', error);
     }
-  }, [inspector, capacityRecords, utilizationRecords, wipRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, getStorage]);
+  }, [inspector, capacityRecords, utilizationRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, getStorage]);
 
   const setInspector = useCallback((inspector: Inspector) => {
     if (!inspector || !inspector.name || inspector.name.length > 100) {
@@ -139,29 +136,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       }
     } catch (error) {
       await syncService.addToPendingSync('utilization', newRecord);
-    }
-    
-    return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
-
-  const addWipRecord = useCallback(async (record: Omit<WIPData, 'id'>) => {
-    const newRecord: WIPData = {
-      ...record,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-    
-    // Save to local state first (always succeeds)
-    setWipRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
-    
-    // Try to save to Google Sheets immediately if online
-    try {
-      const result = await saveWIPDataToSheets(newRecord);
-      if (!result.success) {
-        await syncService.addToPendingSync('wip', newRecord);
-      }
-    } catch (error) {
-      await syncService.addToPendingSync('wip', newRecord);
     }
     
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
@@ -295,12 +269,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
           timestamp: new Date(record.timestamp),
         })));
       }
-      if (Array.isArray(data.wipRecords)) {
-        setWipRecords(data.wipRecords.map((record: any) => ({
-          ...record,
-          timestamp: new Date(record.timestamp),
-        })));
-      }
       if (Array.isArray(data.rejectionRecords)) {
         setRejectionRecords(data.rejectionRecords.map((record: any) => ({
           ...record,
@@ -346,7 +314,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     selectedModule,
     capacityRecords,
     utilizationRecords,
-    wipRecords,
     rejectionRecords,
     setupTimeRecords,
     cycleTimeRecords,
@@ -356,7 +323,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     setSelectedModule,
     addCapacityRecord,
     addUtilizationRecord,
-    addWipRecord,
     addRejectionRecord,
     addSetupTimeRecord,
     addCycleTimeRecord,
@@ -370,7 +336,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     selectedModule,
     capacityRecords,
     utilizationRecords,
-    wipRecords,
     rejectionRecords,
     setupTimeRecords,
     cycleTimeRecords,
@@ -380,7 +345,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     setSelectedModule,
     addCapacityRecord,
     addUtilizationRecord,
-    addWipRecord,
     addRejectionRecord,
     addSetupTimeRecord,
     addCycleTimeRecord,

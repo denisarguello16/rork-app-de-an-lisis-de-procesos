@@ -1,11 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, UtilizationData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
 import { 
   saveCapacityDataToSheets, 
   saveUtilizationDataToSheets, 
   saveRejectionDataToSheets, 
-  saveWIPDataToSheets, 
   saveSetupTimeDataToSheets,
   saveCycleTimeDataToSheets,
   testGoogleSheetsConnection
@@ -14,8 +13,8 @@ import { getNicaraguaTime } from '@/constants/timezone';
 
 interface PendingSyncItem {
   id: string;
-  type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup' | 'cycle-time';
-  data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData | CycleTimeData;
+  type: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time';
+  data: CapacityData | UtilizationData | RejectionData | SetupTimeData | CycleTimeData;
   timestamp: string;
   attempts: number;
 }
@@ -75,8 +74,8 @@ class SyncService {
 
   // Add item to pending sync queue
   async addToPendingSync(
-    type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup' | 'cycle-time',
-    data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData | CycleTimeData
+    type: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time',
+    data: CapacityData | UtilizationData | RejectionData | SetupTimeData | CycleTimeData
   ): Promise<void> {
     try {
       const storage = this.getStorage();
@@ -260,9 +259,6 @@ class SyncService {
           break;
         case 'rejection':
           result = await saveRejectionDataToSheets(item.data as RejectionData);
-          break;
-        case 'wip':
-          result = await saveWIPDataToSheets(item.data as WIPData);
           break;
         case 'setup':
           result = await saveSetupTimeDataToSheets(item.data as SetupTimeData);

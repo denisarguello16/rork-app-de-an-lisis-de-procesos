@@ -1,4 +1,4 @@
-import { CapacityData, UtilizationData, RejectionData, WIPData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, UtilizationData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
 import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 
 // Google Sheets configuration
@@ -270,105 +270,6 @@ export const saveRejectionDataToSheets = async (data: RejectionData): Promise<Go
   }
 };
 
-// Function to save WIP data to Google Sheets
-export const saveWIPDataToSheets = async (data: WIPData): Promise<GoogleSheetsResponse> => {
-  // Check if Google Sheets is configured
-  if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
-  }
-
-  try {
-    const payload = {
-      type: 'wip',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        line: data.line,
-        productState: data.productState,
-        productConfig: data.productConfig,
-        packagingType: data.packagingType,
-        hasIndividualWeightLabel: data.hasIndividualWeightLabel,
-        productCode: data.productCode,
-        productName: data.productName,
-        packaging: data.packaging,
-        queueBeforePortioning: data.queueBeforePortioning,
-        queueBeforePackaging: data.queueBeforePackaging,
-        queueBeforeIndividualLabeling: data.queueBeforeIndividualLabeling,
-        queueBeforeBoxClosure: data.queueBeforeBoxClosure,
-        queueBeforeBoxStrapping: data.queueBeforeBoxStrapping
-      }
-    };
-
-    // Add timeout to the fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-    }
-
-    const responseText = await response.text();
-    
-    // Check if response is HTML (indicates wrong URL or deployment issue)
-    if (responseText.trim().startsWith('<')) {
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch (parseError) {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    // Handle different types of errors with user-friendly messages
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
-};
-
 // Function to save Setup Time data to Google Sheets
 export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<GoogleSheetsResponse> => {
   // Check if Google Sheets is configured
@@ -546,7 +447,7 @@ export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<Go
 };
 
 // Function to save data with fallback to local storage
-export const saveDataWithFallback = async (data: CapacityData | UtilizationData | RejectionData | WIPData | SetupTimeData | CycleTimeData, type: 'capacity' | 'utilization' | 'rejection' | 'wip' | 'setup' | 'cycle-time'): Promise<GoogleSheetsResponse> => {
+export const saveDataWithFallback = async (data: CapacityData | UtilizationData | RejectionData | SetupTimeData | CycleTimeData, type: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time'): Promise<GoogleSheetsResponse> => {
   try {
     // Try to save to Google Sheets first
     const result = type === 'capacity' 
@@ -555,8 +456,6 @@ export const saveDataWithFallback = async (data: CapacityData | UtilizationData 
       ? await saveUtilizationDataToSheets(data as UtilizationData)
       : type === 'rejection'
       ? await saveRejectionDataToSheets(data as RejectionData)
-      : type === 'wip'
-      ? await saveWIPDataToSheets(data as WIPData)
       : type === 'setup'
       ? await saveSetupTimeDataToSheets(data as SetupTimeData)
       : await saveCycleTimeDataToSheets(data as CycleTimeData);

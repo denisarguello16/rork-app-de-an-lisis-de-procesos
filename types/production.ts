@@ -52,24 +52,7 @@ export interface UtilizationData {
   observations?: string;
 }
 
-export interface WIPData {
-  id: string;
-  inspector: string;
-  timestamp: Date;
-  line: ProductionLine;
-  productState: ProductState;
-  productConfig: ProductConfig;
-  packagingType: PackagingType;
-  hasIndividualWeightLabel: boolean;
-  productCode: string;
-  productName: string;
-  packaging: string;
-  queueBeforePortioning: number;
-  queueBeforePackaging: number;
-  queueBeforeIndividualLabeling: number;
-  queueBeforeBoxClosure: number;
-  queueBeforeBoxStrapping: number;
-}
+
 
 export interface RejectionData {
   id: string;
@@ -151,10 +134,9 @@ export interface Window5minData {
 
 export interface ProductionStore {
   inspector: Inspector | null;
-  selectedModule: 'capacity' | 'utilization' | 'wip' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
+  selectedModule: 'capacity' | 'utilization' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
   capacityRecords: CapacityData[];
   utilizationRecords: UtilizationData[];
-  wipRecords: WIPData[];
   rejectionRecords: RejectionData[];
   setupTimeRecords: SetupTimeData[];
   cycleTimeRecords: CycleTimeData[];
