@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Factory, BarChart3, ClipboardList, BookOpen, Clock, AlertTriangle, Timer, Activity } from "lucide-react-native";
+import { Factory, BarChart3, ClipboardList, Clock, AlertTriangle, Timer, Activity } from "lucide-react-native";
 import React from "react";
 
 import { Colors } from "@/constants/colors";
@@ -42,14 +42,6 @@ function RootLayoutNav() {
           tabBarIcon: ({ color }) => <ClipboardList color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="product-catalog"
-        options={{
-          title: "Catálogo",
-          tabBarIcon: ({ color }) => <BookOpen color={color} />,
-        }}
-      />
-
       <Tabs.Screen
         name="setup-records"
         options={{
