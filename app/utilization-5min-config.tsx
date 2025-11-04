@@ -4,17 +4,16 @@ import { Stack, router } from 'expo-router';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { Picker } from '@/components/ui/Picker';
 import { Colors } from '@/constants/colors';
-
+import { PRODUCT_NAMES } from '@/constants/product-names';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Utilization5minConfigScreen() {
   const insets = useSafeAreaInsets();
   const { inspector } = useProductionStore();
   const [stage, setStage] = useState<string>('Sierra 1');
-  const [productFamily, setProductFamily] = useState<string>('');
+  const [productFamily, setProductFamily] = useState<string>(PRODUCT_NAMES[0]);
   const [outputUnit, setOutputUnit] = useState<string>('piezas');
 
   const handleStart = () => {
@@ -83,12 +82,11 @@ export default function Utilization5minConfigScreen() {
             ]}
           />
 
-          <Input
+          <Picker
             label="Corte / Familia de Producto"
-            placeholder="Ej: Lomo, Chuleta, Chorizo"
             value={productFamily}
-            onChangeText={setProductFamily}
-
+            onSelect={(value) => setProductFamily(value)}
+            options={PRODUCT_NAMES.map((name) => ({ key: name, label: name }))}
           />
 
           <Picker
