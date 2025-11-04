@@ -39,9 +39,10 @@ function doPost(e) {
       
       // Agregar encabezados si la hoja está vacía
       if (capacitySheet.getLastRow() === 0) {
-        capacitySheet.getRange(1, 1, 1, 10).setValues([[
+        capacitySheet.getRange(1, 1, 1, 13).setValues([[
           'ID', 'Inspector', 'Timestamp', 'Resource Type', 'Resource Name', 
-          'Product Name', 'Package Size', 'People Count', 'Pieces Produced', 'Pieces Per Minute'
+          'Product Name', 'Product Code', 'Line', 'Stage', 'Package Size', 
+          'People Count', 'Pieces Produced', 'Defective Pieces', 'Pieces Per Minute'
         ]]);
       }
       
@@ -62,57 +63,21 @@ function doPost(e) {
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
-        data.data.resourceType,
-        data.data.resourceName,
+        data.data.resourceType || '',
+        data.data.resourceName || '',
         data.data.productName,
+        data.data.productCode || '',
+        data.data.line || '',
+        data.data.stage || '',
         data.data.packageSize,
         data.data.peopleCount,
         data.data.piecesProduced,
+        data.data.defectivePieces || 0,
         data.data.piecesPerMinute
       ];
       
       capacitySheet.appendRow(row);
       console.log('Successfully added capacity data row');
-      
-    } else if (data.type === 'utilization') {
-      const utilizationSheet = sheet.getSheetByName('Utilization') || sheet.insertSheet('Utilization');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (utilizationSheet.getLastRow() === 0) {
-        utilizationSheet.getRange(1, 1, 1, 10).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Resource Type', 'Resource Name',
-          'Product Name', 'Available Time', 'Productive Time', 'Utilization Percentage', 'Observations'
-        ]]);
-      }
-      
-      // Verificar duplicados
-      if (isDuplicate(utilizationSheet, data.data.id)) {
-        console.log('Duplicate utilization record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.resourceType,
-        data.data.resourceName,
-        data.data.productName,
-        data.data.availableTime,
-        data.data.productiveTime,
-        data.data.utilizationPercentage,
-        data.data.observations
-      ];
-      
-      utilizationSheet.appendRow(row);
-      console.log('Successfully added utilization data row');
       
     } else if (data.type === 'rejection') {
       const rejectionSheet = sheet.getSheetByName('Rejection') || sheet.insertSheet('Rejection');
@@ -151,54 +116,6 @@ function doPost(e) {
       rejectionSheet.appendRow(row);
       console.log('Successfully added rejection data row');
       
-    } else if (data.type === 'wip') {
-      const wipSheet = sheet.getSheetByName('WIP') || sheet.insertSheet('WIP');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (wipSheet.getLastRow() === 0) {
-        wipSheet.getRange(1, 1, 1, 16).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Line', 'Product State', 'Product Config',
-          'Packaging Type', 'Has Individual Weight Label', 'Product Code', 'Product Name',
-          'Packaging', 'Queue Before Portioning', 'Queue Before Packaging', 'Queue Before Individual Labeling',
-          'Queue Before Box Closure', 'Queue Before Box Strapping'
-        ]]);
-      }
-      
-      // Verificar duplicados
-      if (isDuplicate(wipSheet, data.data.id)) {
-        console.log('Duplicate WIP record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.line,
-        data.data.productState,
-        data.data.productConfig,
-        data.data.packagingType,
-        data.data.hasIndividualWeightLabel,
-        data.data.productCode,
-        data.data.productName,
-        data.data.packaging,
-        data.data.queueBeforePortioning,
-        data.data.queueBeforePackaging,
-        data.data.queueBeforeIndividualLabeling,
-        data.data.queueBeforeBoxClosure,
-        data.data.queueBeforeBoxStrapping
-      ];
-      
-      wipSheet.appendRow(row);
-      console.log('Successfully added WIP data row');
-      
     } else if (data.type === 'setup') {
       const setupSheet = sheet.getSheetByName('Setup') || sheet.insertSheet('Setup');
       
@@ -234,6 +151,42 @@ function doPost(e) {
       
       setupSheet.appendRow(row);
       console.log('Successfully added setup time data row');
+      
+    } else if (data.type === 'cycle-time') {
+      const cycleTimeSheet = sheet.getSheetByName('CycleTime') || sheet.insertSheet('CycleTime');
+      
+      // Agregar encabezados si la hoja está vacía
+      if (cycleTimeSheet.getLastRow() === 0) {
+        cycleTimeSheet.getRange(1, 1, 1, 7).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Product Name', 'Packaging Machine', 'Cycle Time (seconds)', 'Observations'
+        ]]);
+      }
+      
+      // Verificar duplicados
+      if (isDuplicate(cycleTimeSheet, data.data.id)) {
+        console.log('Duplicate cycle time record detected, skipping:', data.data.id);
+        return ContentService
+          .createTextOutput(JSON.stringify({ 
+            success: true, 
+            message: 'Duplicate record skipped', 
+            timestamp: new Date().toISOString() 
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      
+      // Agregar fila de datos
+      const row = [
+        data.data.id,
+        data.data.inspector,
+        data.data.timestamp,
+        data.data.productName,
+        data.data.packagingMachine,
+        data.data.cycleTime,
+        data.data.observations || ''
+      ];
+      
+      cycleTimeSheet.appendRow(row);
+      console.log('Successfully added cycle time data row');
       
     } else if (data.type === 'test') {
       console.log('Test request received:', data.data);
@@ -336,19 +289,16 @@ function doPost(e) {
 ## Estructura de Datos Actualizada
 
 ### Hoja "Capacity"
-- ID, Inspector, Timestamp, Resource Type, Resource Name, Product Name, Package Size, People Count, Pieces Produced, Pieces Per Minute
-
-### Hoja "Utilization"
-- ID, Inspector, Timestamp, Resource Type, Resource Name, Product Name, Available Time, Productive Time, Utilization Percentage, Observations
+- ID, Inspector, Timestamp, Resource Type, Resource Name, Product Name, Product Code, Line, Stage, Package Size, People Count, Pieces Produced, Defective Pieces, Pieces Per Minute
 
 ### Hoja "Rejection"
 - ID, Inspector, Timestamp, Line, Product Name, Package Size, Rejection Cause, Quantity
 
-### Hoja "WIP"
-- ID, Inspector, Timestamp, Line, Product State, Product Config, Packaging Type, Has Individual Weight Label, Product Code, Product Name, Packaging, Queue Before Portioning, Queue Before Packaging, Queue Before Individual Labeling, Queue Before Box Closure, Queue Before Box Strapping
-
 ### Hoja "Setup"
 - ID, Inspector, Timestamp, Resource Name, Event Type, Event Time (minutes), Description
+
+### Hoja "CycleTime"
+- ID, Inspector, Timestamp, Product Name, Packaging Machine, Cycle Time (seconds), Observations
 
 ## Notas Importantes
 - Los datos se guardan localmente en la app primero
