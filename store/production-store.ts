@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { ProductionStore, Inspector, CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData } from '@/types/production';
 import { PRODUCT_CATALOG } from '@/constants/production';
-import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets } from '@/services/google-sheets';
+import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets, saveWindow5minDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
 
@@ -194,7 +194,16 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     setWindow5minRecords(prev => [...prev, newRecord]);
     await saveToStorage();
     
-    return { success: true, message: 'Ventana de 5 minutos guardada localmente.' };
+    try {
+      const result = await saveWindow5minDataToSheets(newRecord);
+      if (!result.success) {
+        await syncService.addToPendingSync('productivity', newRecord);
+      }
+    } catch (error) {
+      await syncService.addToPendingSync('productivity', newRecord);
+    }
+    
+    return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
   }, [saveToStorage]);
 
   const getProductByCode = useCallback((code: string) => {
