@@ -93,7 +93,6 @@ export default function Utilization5minTimerScreen() {
       intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            handleFinish();
             return 0;
           }
           return prev - 1;
@@ -111,7 +110,13 @@ export default function Utilization5minTimerScreen() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, timeLeft, handleFinish]);
+  }, [isRunning, timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !isRunning) {
+      handleFinish();
+    }
+  }, [timeLeft, isRunning, handleFinish]);
 
   const handlePlayPause = () => {
     if (!isRunning && !currentState) {

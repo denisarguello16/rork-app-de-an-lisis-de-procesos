@@ -1,4 +1,4 @@
-import { CapacityData, RejectionData, SetupTimeData, CycleTimeData } from '@/types/production';
+import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData } from '@/types/production';
 import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 
 // Google Sheets configuration
@@ -6,7 +6,7 @@ import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 const GOOGLE_SHEETS_CONFIG = {
   // Reemplaza con la URL de tu Google Apps Script web app
   // Ejemplo: 'https://script.google.com/macros/s/AKfycbxPH25gA2xxHNxjU3wjzlFIEL-p9Nz6WdHKo8MPtjmhF6vd9YcKrrpNmxIdPagapZgPmA/exec'
-  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbz5e9_pkb15UKsBh-9pzAFI4KYMFMDYa6LdAwRcv9hLnxonLs52hptYk5lZWyDLNV-o/exec',
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbwgBC7liE7_bUq1Rm1MwNS7F6ScvNy_8fRomvBfQJI7b5ohGxSroZ3o72bsKxdowpl5Vg/exec',
   // Solo el ID de la hoja, no la URL completahttps
   SHEET_ID: '1kwnCBSwNL6qWuXVKfj2LLKKeM3uxNQIZZ3VWAYCdmLI'
 };
@@ -360,6 +360,95 @@ export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<Go
   }
 };
 
+// Function to save Window 5min data to Google Sheets
+export const saveWindow5minDataToSheets = async (data: Window5minData): Promise<GoogleSheetsResponse> => {
+  if (!isGoogleSheetsConfigured()) {
+    return {
+      success: false,
+      error: 'Google Sheets not configured. Data saved locally only.'
+    };
+  }
+
+  try {
+    const payload = {
+      type: 'productivity',
+      data: {
+        id: data.id,
+        inspector: data.inspector,
+        timestamp: formatForGoogleSheets(data.timestamp),
+        stage: data.stage,
+        productFamily: data.productFamily,
+        outputUnit: data.outputUnit,
+        output: data.output,
+        events: JSON.stringify(data.events),
+        utilizationPercentage: data.utilizationPercentage,
+        capacityPerHour: data.capacityPerHour
+      }
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ HTTP Error Response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+    }
+
+    const responseText = await response.text();
+    
+    if (responseText.trim().startsWith('<')) {
+      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
+    }
+    
+    try {
+      const result = JSON.parse(responseText);
+      return result;
+    } catch (parseError) {
+      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+    }
+  } catch (error) {
+    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
+        };
+      }
+      
+      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
+        return {
+          success: false,
+          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
+        };
+      }
+      
+      return {
+        success: false,
+        error: 'Error de sincronización. Los datos se guardaron localmente.'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'Error desconocido. Los datos se guardaron localmente.'
+    };
+  }
+};
+
 // Function to save Cycle Time data to Google Sheets
 export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<GoogleSheetsResponse> => {
   if (!isGoogleSheetsConfigured()) {
@@ -447,7 +536,7 @@ export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<Go
 };
 
 // Function to save data with fallback to local storage
-export const saveDataWithFallback = async (data: CapacityData | RejectionData | SetupTimeData | CycleTimeData, type: 'capacity' | 'rejection' | 'setup' | 'cycle-time'): Promise<GoogleSheetsResponse> => {
+export const saveDataWithFallback = async (data: CapacityData | RejectionData | SetupTimeData | CycleTimeData | Window5minData, type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity'): Promise<GoogleSheetsResponse> => {
   try {
     // Try to save to Google Sheets first
     const result = type === 'capacity' 
@@ -456,7 +545,9 @@ export const saveDataWithFallback = async (data: CapacityData | RejectionData | 
       ? await saveRejectionDataToSheets(data as RejectionData)
       : type === 'setup'
       ? await saveSetupTimeDataToSheets(data as SetupTimeData)
-      : await saveCycleTimeDataToSheets(data as CycleTimeData);
+      : type === 'cycle-time'
+      ? await saveCycleTimeDataToSheets(data as CycleTimeData)
+      : await saveWindow5minDataToSheets(data as Window5minData);
     
     if (result.success) {
       return result;
@@ -775,6 +866,33 @@ function doPost(e) {
       
       cycleTimeSheet.appendRow(row);
       console.log('Successfully added cycle time data row');
+      
+    } else if (data.type === 'productivity') {
+      const productivitySheet = sheet.getSheetByName('Productivity') || sheet.insertSheet('Productivity');
+      
+      // Add headers if sheet is empty
+      if (productivitySheet.getLastRow() === 0) {
+        productivitySheet.getRange(1, 1, 1, 9).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output', 'Events', 'Utilization %', 'Capacity per Hour'
+        ]]);
+      }
+      
+      // Add data row
+      const row = [
+        data.data.id,
+        data.data.inspector,
+        data.data.timestamp,
+        data.data.stage,
+        data.data.productFamily,
+        data.data.outputUnit,
+        data.data.output,
+        data.data.events || '',
+        data.data.utilizationPercentage,
+        data.data.capacityPerHour
+      ];
+      
+      productivitySheet.appendRow(row);
+      console.log('Successfully added productivity data row');
       
     } else if (data.type === 'test') {
       // Handle test requests

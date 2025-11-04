@@ -188,6 +188,45 @@ function doPost(e) {
       cycleTimeSheet.appendRow(row);
       console.log('Successfully added cycle time data row');
       
+    } else if (data.type === 'productivity') {
+      const productivitySheet = sheet.getSheetByName('Productivity') || sheet.insertSheet('Productivity');
+      
+      // Agregar encabezados si la hoja está vacía
+      if (productivitySheet.getLastRow() === 0) {
+        productivitySheet.getRange(1, 1, 1, 10).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output', 'Events', 'Utilization %', 'Capacity per Hour'
+        ]]);
+      }
+      
+      // Verificar duplicados
+      if (isDuplicate(productivitySheet, data.data.id)) {
+        console.log('Duplicate productivity record detected, skipping:', data.data.id);
+        return ContentService
+          .createTextOutput(JSON.stringify({ 
+            success: true, 
+            message: 'Duplicate record skipped', 
+            timestamp: new Date().toISOString() 
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      
+      // Agregar fila de datos
+      const row = [
+        data.data.id,
+        data.data.inspector,
+        data.data.timestamp,
+        data.data.stage,
+        data.data.productFamily,
+        data.data.outputUnit,
+        data.data.output,
+        data.data.events || '',
+        data.data.utilizationPercentage,
+        data.data.capacityPerHour
+      ];
+      
+      productivitySheet.appendRow(row);
+      console.log('Successfully added productivity data row');
+      
     } else if (data.type === 'capacity') {
       const capacitySheet = sheet.getSheetByName('Capacity') || sheet.insertSheet('Capacity');
       
@@ -339,6 +378,9 @@ function doPost(e) {
 
 ### Hoja "CycleTime"
 - ID, Inspector, Timestamp, Product Name, Packaging Machine, Cycle Time (seconds), Observations
+
+### Hoja "Productivity" (Estimación de Productividad)
+- ID, Inspector, Timestamp, Stage, Product Family, Output Unit, Output, Events, Utilization %, Capacity per Hour
 
 ## Notas Importantes
 - Los datos se guardan localmente en la app primero
