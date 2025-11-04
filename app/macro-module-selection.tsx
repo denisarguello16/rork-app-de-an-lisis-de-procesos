@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Package, Beef } from 'lucide-react-native';
+import { Beef, Cog } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -53,7 +53,7 @@ export default function MacroModuleSelectionScreen() {
 
         <Card style={styles.moduleCard}>
           <View style={styles.moduleHeader}>
-            <Package size={48} color={Colors.light.primary} />
+            <Beef size={48} color={Colors.light.primary} />
             <Text style={styles.moduleTitle}>Línea Signature</Text>
           </View>
           
@@ -77,7 +77,7 @@ export default function MacroModuleSelectionScreen() {
 
         <Card style={styles.moduleCard}>
           <View style={styles.moduleHeader}>
-            <Beef size={48} color="#dc2626" />
+            <Cog size={48} color="#dc2626" />
             <Text style={styles.moduleTitle}>Deshuese</Text>
           </View>
           
