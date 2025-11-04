@@ -5,6 +5,7 @@ import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Picker } from '@/components/ui/Picker';
+import { SearchablePicker } from '@/components/ui/SearchablePicker';
 import { Colors } from '@/constants/colors';
 import { PRODUCT_NAMES } from '@/constants/product-names';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -82,7 +83,7 @@ export default function Utilization5minConfigScreen() {
             ]}
           />
 
-          <Picker
+          <SearchablePicker
             label="Corte / Familia de Producto"
             value={productFamily}
             onSelect={(value) => setProductFamily(value)}
