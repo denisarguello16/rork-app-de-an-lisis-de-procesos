@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function Utilization5minConfigScreen() {
   const insets = useSafeAreaInsets();
   const { inspector } = useProductionStore();
-  const [stage, setStage] = useState<string>('');
+  const [stage, setStage] = useState<string>('Sierra 1');
   const [productFamily, setProductFamily] = useState<string>('');
   const [outputUnit, setOutputUnit] = useState<string>('piezas');
 
@@ -65,12 +65,22 @@ export default function Utilization5minConfigScreen() {
             <Text style={styles.inspectorName}>{inspector?.name}</Text>
           </View>
 
-          <Input
+          <Picker
             label="Etapa del Proceso"
-            placeholder="Ej: Porcionado, Empaque, Etiquetado"
             value={stage}
-            onChangeText={setStage}
-
+            onSelect={(value) => setStage(value)}
+            options={[
+              { key: 'Sierra 1', label: 'Sierra 1' },
+              { key: 'Sierra 2', label: 'Sierra 2' },
+              { key: 'Sierra 3', label: 'Sierra 3' },
+              { key: 'ULMA 2', label: 'ULMA 2' },
+              { key: 'Multivac R-105', label: 'Multivac R-105' },
+              { key: 'VS-95', label: 'VS-95' },
+              { key: 'Indicador 80', label: 'Indicador 80' },
+              { key: 'Indicador 70', label: 'Indicador 70' },
+              { key: 'Indicador 40', label: 'Indicador 40' },
+              { key: 'Indicador 30', label: 'Indicador 30' },
+            ]}
           />
 
           <Input
