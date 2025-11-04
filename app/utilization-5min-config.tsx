@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Picker } from '@/components/ui/Picker';
+import { RESOURCE_TYPES, getResourcesByType } from '@/constants/resources';
 import { Colors } from '@/constants/colors';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,26 +14,39 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function Utilization5minConfigScreen() {
   const insets = useSafeAreaInsets();
   const { inspector } = useProductionStore();
-  const [stage, setStage] = useState<string>('');
+  const [resourceType, setResourceType] = useState<string>('');
+  const [resourceName, setResourceName] = useState<string>('');
   const [productFamily, setProductFamily] = useState<string>('');
   const [outputUnit, setOutputUnit] = useState<string>('piezas');
 
+  const availableResources = React.useMemo(() => {
+    if (!resourceType) {
+      return [];
+    }
+    return getResourcesByType(resourceType as any);
+  }, [resourceType]);
+
+  const handleResourceTypeChange = (type: string) => {
+    setResourceType(type);
+    setResourceName('');
+  };
+
   const handleStart = () => {
-    if (!stage.trim() || !productFamily.trim()) {
+    if (!resourceName || !productFamily.trim()) {
       return;
     }
     
     router.push({
       pathname: '/utilization-5min-timer',
       params: {
-        stage: stage.trim(),
+        stage: resourceName,
         productFamily: productFamily.trim(),
         outputUnit,
       },
     });
   };
 
-  const isValid = stage.trim() && productFamily.trim();
+  const isValid = resourceName && productFamily.trim();
 
   return (
     <View style={styles.container}>
@@ -65,13 +79,23 @@ export default function Utilization5minConfigScreen() {
             <Text style={styles.inspectorName}>{inspector?.name}</Text>
           </View>
 
-          <Input
-            label="Etapa del Proceso"
-            placeholder="Ej: Porcionado, Empaque, Etiquetado"
-            value={stage}
-            onChangeText={setStage}
-
+          <Picker
+            label="Tipo de Recurso"
+            value={resourceType}
+            options={RESOURCE_TYPES.map(type => ({ key: type, label: type }))}
+            onSelect={handleResourceTypeChange}
+            placeholder="Seleccionar tipo..."
           />
+
+          {resourceType && (
+            <Picker
+              label="Recurso Monitoreado"
+              value={resourceName}
+              options={availableResources.map(resource => ({ key: resource.name, label: resource.name }))}
+              onSelect={setResourceName}
+              placeholder="Seleccionar recurso..."
+            />
+          )}
 
           <Input
             label="Corte / Familia de Producto"
