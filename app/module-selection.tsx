@@ -39,7 +39,7 @@ export default function ModuleSelectionScreen() {
     <View style={styles.container}>
       <Stack.Screen 
         options={{ 
-          title: 'Selección de Módulo',
+          title: 'Línea Signature',
           headerLeft: () => (
             <Button
               title="Atrás"
@@ -56,7 +56,7 @@ export default function ModuleSelectionScreen() {
         <View style={styles.header}>
           <Logo size="medium" variant="horizontal" />
           <Text style={styles.welcomeText}>Bienvenido, {inspector?.name}</Text>
-          <Text style={styles.subtitle}>Seleccione el módulo de análisis</Text>
+          <Text style={styles.subtitle}>Línea Signature - Seleccione el módulo de análisis</Text>
         </View>
 
         <Card style={styles.moduleCard}>

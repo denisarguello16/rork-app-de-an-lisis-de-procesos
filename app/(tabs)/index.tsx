@@ -26,11 +26,11 @@ export default function HomeScreen() {
       timestamp: new Date(),
     });
 
-    router.push('/module-selection');
+    router.push('/macro-module-selection');
   };
 
   const handleContinueSession = () => {
-    router.push('/module-selection');
+    router.push('/macro-module-selection');
   };
 
   return (
@@ -64,7 +64,7 @@ export default function HomeScreen() {
                       name: inspectorName.trim() || inspector.name,
                       timestamp: new Date(),
                     });
-                    router.push('/module-selection');
+                    router.push('/macro-module-selection');
                   }}
                   variant="secondary"
                   style={styles.button}

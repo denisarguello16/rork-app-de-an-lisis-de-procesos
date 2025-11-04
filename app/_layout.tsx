@@ -16,6 +16,13 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerBackTitle: "Atrás" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen 
+        name="macro-module-selection" 
+        options={{ 
+          title: "Selección de Área",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
         name="module-selection" 
         options={{ 
           title: "Selección de Módulo",
