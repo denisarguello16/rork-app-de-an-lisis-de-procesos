@@ -49,8 +49,28 @@ export default function Utilization5minTimerScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleFinish = useCallback(async () => {
+    console.log('🔵 handleFinish called');
+    console.log('🔵 timeLeft:', timeLeft);
+    console.log('🔵 inspector:', inspector);
+    console.log('🔵 addWindow5minRecord:', typeof addWindow5minRecord);
+    console.log('🔵 events:', events);
+    console.log('🔵 currentState:', currentState);
+    console.log('🔵 output:', output);
+    
     if (timeLeft > 0) {
       Alert.alert('Atención', 'El timer aún no ha terminado. Espere a que llegue a 0:00');
+      return;
+    }
+
+    if (!inspector) {
+      console.error('❌ Inspector no definido');
+      Alert.alert('Error', 'Inspector no definido');
+      return;
+    }
+
+    if (!addWindow5minRecord) {
+      console.error('❌ Función addWindow5minRecord no disponible');
+      Alert.alert('Error', 'Función addWindow5minRecord no disponible');
       return;
     }
 
@@ -64,6 +84,8 @@ export default function Utilization5minTimerScreen() {
         endTime: 300,
       });
     }
+
+    console.log('🔵 finalEvents:', finalEvents);
 
     const stateSecondsMap: Record<WindowState, number> = {
       RUN: 0,
@@ -82,41 +104,42 @@ export default function Utilization5minTimerScreen() {
       stateSecondsMap[event.state] += duration;
     });
 
+    console.log('🔵 stateSecondsMap:', stateSecondsMap);
+
     const runSeconds = stateSecondsMap['RUN'];
     const utilizationPercentage = (runSeconds / 300) * 100;
     const capacityPerHour = output * 12;
 
-    if (!inspector) {
-      Alert.alert('Error', 'Inspector no definido');
-      return;
-    }
+    console.log('🔵 utilizationPercentage:', utilizationPercentage);
+    console.log('🔵 capacityPerHour:', capacityPerHour);
 
-    if (!addWindow5minRecord) {
-      Alert.alert('Error', 'Función addWindow5minRecord no disponible');
-      return;
-    }
+    const recordData = {
+      inspector: inspector.name,
+      timestamp: getNicaraguaTime(),
+      stage: params.stage || '',
+      productFamily: params.productFamily || '',
+      outputUnit: (params.outputUnit as 'piezas' | 'cajas') || 'piezas',
+      output,
+      events: finalEvents,
+      runPercentage: (stateSecondsMap['RUN'] / 300) * 100,
+      starvedPercentage: (stateSecondsMap['STARVED'] / 300) * 100,
+      blockedPercentage: (stateSecondsMap['BLOCKED'] / 300) * 100,
+      setupPercentage: (stateSecondsMap['SETUP'] / 300) * 100,
+      ajustePercentage: (stateSecondsMap['AJUSTE'] / 300) * 100,
+      sanitPercentage: (stateSecondsMap['SANIT'] / 300) * 100,
+      fallaPercentage: (stateSecondsMap['FALLA'] / 300) * 100,
+      logisticaPercentage: (stateSecondsMap['LOGÍSTICA'] / 300) * 100,
+      otrosPercentage: (stateSecondsMap['OTROS'] / 300) * 100,
+      utilizationPercentage,
+      capacityPerHour,
+    };
+
+    console.log('🔵 recordData to save:', JSON.stringify(recordData, null, 2));
 
     try {
-      await addWindow5minRecord({
-        inspector: inspector.name,
-        timestamp: getNicaraguaTime(),
-        stage: params.stage || '',
-        productFamily: params.productFamily || '',
-        outputUnit: (params.outputUnit as 'piezas' | 'cajas') || 'piezas',
-        output,
-        events: finalEvents,
-        runPercentage: (stateSecondsMap['RUN'] / 300) * 100,
-        starvedPercentage: (stateSecondsMap['STARVED'] / 300) * 100,
-        blockedPercentage: (stateSecondsMap['BLOCKED'] / 300) * 100,
-        setupPercentage: (stateSecondsMap['SETUP'] / 300) * 100,
-        ajustePercentage: (stateSecondsMap['AJUSTE'] / 300) * 100,
-        sanitPercentage: (stateSecondsMap['SANIT'] / 300) * 100,
-        fallaPercentage: (stateSecondsMap['FALLA'] / 300) * 100,
-        logisticaPercentage: (stateSecondsMap['LOGÍSTICA'] / 300) * 100,
-        otrosPercentage: (stateSecondsMap['OTROS'] / 300) * 100,
-        utilizationPercentage,
-        capacityPerHour,
-      });
+      console.log('🔵 Calling addWindow5minRecord...');
+      const result = await addWindow5minRecord(recordData);
+      console.log('🔵 addWindow5minRecord result:', result);
 
       Alert.alert(
         'Ventana Guardada',
@@ -124,8 +147,12 @@ export default function Utilization5minTimerScreen() {
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Error saving window:', error);
-      Alert.alert('Error', 'No se pudo guardar la ventana. Intente de nuevo.');
+      console.error('❌ Error saving window:', error);
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+      }
+      Alert.alert('Error', `No se pudo guardar la ventana: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }, [events, currentState, stateStartTime, output, params, inspector, addWindow5minRecord, timeLeft]);
 
