@@ -110,6 +110,15 @@ export interface Window5minData {
   outputUnit: OutputUnit;
   output: number;
   events: StateEvent[];
+  runPercentage: number;
+  starvedPercentage: number;
+  blockedPercentage: number;
+  setupPercentage: number;
+  ajustePercentage: number;
+  sanitPercentage: number;
+  fallaPercentage: number;
+  logisticaPercentage: number;
+  otrosPercentage: number;
   utilizationPercentage: number;
   capacityPerHour: number;
 }

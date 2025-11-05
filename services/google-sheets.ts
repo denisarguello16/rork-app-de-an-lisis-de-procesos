@@ -380,7 +380,15 @@ export const saveWindow5minDataToSheets = async (data: Window5minData): Promise<
         productFamily: data.productFamily,
         outputUnit: data.outputUnit,
         output: data.output,
-        events: JSON.stringify(data.events),
+        runPercentage: data.runPercentage,
+        starvedPercentage: data.starvedPercentage,
+        blockedPercentage: data.blockedPercentage,
+        setupPercentage: data.setupPercentage,
+        ajustePercentage: data.ajustePercentage,
+        sanitPercentage: data.sanitPercentage,
+        fallaPercentage: data.fallaPercentage,
+        logisticaPercentage: data.logisticaPercentage,
+        otrosPercentage: data.otrosPercentage,
         utilizationPercentage: data.utilizationPercentage,
         capacityPerHour: data.capacityPerHour
       }
@@ -872,8 +880,10 @@ function doPost(e) {
       
       // Add headers if sheet is empty
       if (productivitySheet.getLastRow() === 0) {
-        productivitySheet.getRange(1, 1, 1, 9).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output', 'Events', 'Utilization %', 'Capacity per Hour'
+        productivitySheet.getRange(1, 1, 1, 18).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output',
+          'RUN %', 'STARVED %', 'BLOCKED %', 'SETUP %', 'AJUSTE %', 'SANIT %', 'FALLA %', 'LOGISTICA %', 'OTROS %',
+          'Utilization %', 'Capacity per Hour'
         ]]);
       }
       
@@ -886,7 +896,15 @@ function doPost(e) {
         data.data.productFamily,
         data.data.outputUnit,
         data.data.output,
-        data.data.events || '',
+        data.data.runPercentage || 0,
+        data.data.starvedPercentage || 0,
+        data.data.blockedPercentage || 0,
+        data.data.setupPercentage || 0,
+        data.data.ajustePercentage || 0,
+        data.data.sanitPercentage || 0,
+        data.data.fallaPercentage || 0,
+        data.data.logisticaPercentage || 0,
+        data.data.otrosPercentage || 0,
         data.data.utilizationPercentage,
         data.data.capacityPerHour
       ];

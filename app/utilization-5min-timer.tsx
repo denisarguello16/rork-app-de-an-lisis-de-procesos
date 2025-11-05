@@ -60,10 +60,24 @@ export default function Utilization5minTimerScreen() {
       });
     }
 
-    const runSeconds = finalEvents
-      .filter((e) => e.state === 'RUN')
-      .reduce((sum, e) => sum + ((e.endTime ?? 300) - e.startTime), 0);
+    const stateSecondsMap: Record<WindowState, number> = {
+      RUN: 0,
+      STARVED: 0,
+      BLOCKED: 0,
+      SETUP: 0,
+      AJUSTE: 0,
+      SANIT: 0,
+      FALLA: 0,
+      LOGÍSTICA: 0,
+      OTROS: 0,
+    };
 
+    finalEvents.forEach((event) => {
+      const duration = (event.endTime ?? 300) - event.startTime;
+      stateSecondsMap[event.state] += duration;
+    });
+
+    const runSeconds = stateSecondsMap['RUN'];
     const utilizationPercentage = (runSeconds / 300) * 100;
     const capacityPerHour = output * 12;
 
@@ -76,6 +90,15 @@ export default function Utilization5minTimerScreen() {
         outputUnit: (params.outputUnit as 'piezas' | 'cajas') || 'piezas',
         output,
         events: finalEvents,
+        runPercentage: (stateSecondsMap['RUN'] / 300) * 100,
+        starvedPercentage: (stateSecondsMap['STARVED'] / 300) * 100,
+        blockedPercentage: (stateSecondsMap['BLOCKED'] / 300) * 100,
+        setupPercentage: (stateSecondsMap['SETUP'] / 300) * 100,
+        ajustePercentage: (stateSecondsMap['AJUSTE'] / 300) * 100,
+        sanitPercentage: (stateSecondsMap['SANIT'] / 300) * 100,
+        fallaPercentage: (stateSecondsMap['FALLA'] / 300) * 100,
+        logisticaPercentage: (stateSecondsMap['LOGÍSTICA'] / 300) * 100,
+        otrosPercentage: (stateSecondsMap['OTROS'] / 300) * 100,
         utilizationPercentage,
         capacityPerHour,
       });
