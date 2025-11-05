@@ -135,11 +135,14 @@ export default function Utilization5minTimerScreen() {
     };
   }, [isRunning, timeLeft]);
 
+  const hasFinishedRef = useRef(false);
+
   useEffect(() => {
-    if (timeLeft === 0 && !isRunning) {
+    if (timeLeft === 0 && !isRunning && !hasFinishedRef.current) {
+      hasFinishedRef.current = true;
       handleFinish();
     }
-  }, [timeLeft, isRunning, handleFinish]);
+  }, [timeLeft, isRunning]);
 
   const handlePlayPause = () => {
     if (!isRunning && !currentState) {
@@ -159,6 +162,7 @@ export default function Utilization5minTimerScreen() {
           text: 'Reiniciar',
           style: 'destructive',
           onPress: () => {
+            hasFinishedRef.current = false;
             setTimeLeft(300);
             setIsRunning(false);
             setOutput(0);
