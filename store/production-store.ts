@@ -60,24 +60,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     return AsyncStorage;
   }, []);
 
-  const saveToStorage = useCallback(async () => {
-    try {
-      const storage = getStorage();
-      const dataToSave = {
-        inspector,
-        capacityRecords,
-        rejectionRecords,
-        setupTimeRecords,
-        cycleTimeRecords,
-        window5minRecords,
-        lastSaved: getNicaraguaTime().toISOString(),
-      };
-      await storage.setItem('production-data', JSON.stringify(dataToSave));
-    } catch (error) {
-      console.error('❌ Error saving to storage:', error);
-    }
-  }, [inspector, capacityRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, getStorage]);
-
   const setInspector = useCallback((inspector: Inspector) => {
     if (!inspector || !inspector.name || inspector.name.length > 100) {
       return;
@@ -90,8 +72,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       return;
     }
     setInspectorState(sanitizedInspector);
-    saveToStorage();
-  }, [saveToStorage]);
+  }, []);
 
   const addCapacityRecord = useCallback(async (record: Omit<CapacityData, 'id'>) => {
     const newRecord: CapacityData = {
@@ -99,11 +80,8 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    // Save to local state first (always succeeds)
     setCapacityRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
     
-    // Try to save to Google Sheets immediately if online
     try {
       const result = await saveCapacityDataToSheets(newRecord);
       if (!result.success) {
@@ -114,7 +92,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     }
     
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
+  }, []);
 
 
 
@@ -124,11 +102,8 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    // Save to local state first (always succeeds)
     setRejectionRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
     
-    // Try to save to Google Sheets immediately if online
     try {
       const result = await saveRejectionDataToSheets(newRecord);
       if (!result.success) {
@@ -139,7 +114,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     }
     
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
+  }, []);
 
   const addSetupTimeRecord = useCallback(async (record: Omit<SetupTimeData, 'id'>) => {
     const newRecord: SetupTimeData = {
@@ -147,11 +122,8 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    // Save to local state first (always succeeds)
     setSetupTimeRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
     
-    // Try to save to Google Sheets immediately if online
     try {
       const result = await saveSetupTimeDataToSheets(newRecord);
       if (!result.success) {
@@ -162,7 +134,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     }
     
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
+  }, []);
 
   const addCycleTimeRecord = useCallback(async (record: Omit<CycleTimeData, 'id'>) => {
     const newRecord: CycleTimeData = {
@@ -171,7 +143,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     };
     
     setCycleTimeRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
     
     try {
       const result = await saveCycleTimeDataToSheets(newRecord);
@@ -183,7 +154,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     }
     
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
+  }, []);
 
   const addWindow5minRecord = useCallback(async (record: Omit<Window5minData, 'id'>) => {
     const newRecord: Window5minData = {
@@ -192,7 +163,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     };
     
     setWindow5minRecords(prev => [...prev, newRecord]);
-    await saveToStorage();
     
     try {
       const result = await saveWindow5minDataToSheets(newRecord);
@@ -204,7 +174,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     }
     
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
-  }, [saveToStorage]);
+  }, []);
 
   const getProductByCode = useCallback((code: string) => {
     const product = productCatalog.find(p => p.code === code);
@@ -290,6 +260,22 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     loadFromStorage();
   }, [loadFromStorage]);
 
+  useEffect(() => {
+    const storage = getStorage();
+    const dataToSave = {
+      inspector,
+      capacityRecords,
+      rejectionRecords,
+      setupTimeRecords,
+      cycleTimeRecords,
+      window5minRecords,
+      lastSaved: getNicaraguaTime().toISOString(),
+    };
+    storage.setItem('production-data', JSON.stringify(dataToSave)).catch(error => {
+      console.error('❌ Error saving to storage:', error);
+    });
+  }, [inspector, capacityRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, getStorage]);
+
   return useMemo(() => ({
     inspector,
     selectedModule,
@@ -308,8 +294,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWindow5minRecord,
     getProductByCode,
     clearSession,
-    loadFromStorage,
-    saveToStorage,
   }), [
     inspector,
     selectedModule,
@@ -328,7 +312,5 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWindow5minRecord,
     getProductByCode,
     clearSession,
-    loadFromStorage,
-    saveToStorage,
   ]);
 });
