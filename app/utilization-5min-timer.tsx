@@ -48,7 +48,7 @@ export default function Utilization5minTimerScreen() {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleFinish = useCallback(() => {
+  const handleFinish = useCallback(async () => {
     if (timeLeft > 0) {
       Alert.alert('Atención', 'El timer aún no ha terminado. Espere a que llegue a 0:00');
       return;
@@ -86,8 +86,18 @@ export default function Utilization5minTimerScreen() {
     const utilizationPercentage = (runSeconds / 300) * 100;
     const capacityPerHour = output * 12;
 
-    if (inspector && addWindow5minRecord) {
-      addWindow5minRecord({
+    if (!inspector) {
+      Alert.alert('Error', 'Inspector no definido');
+      return;
+    }
+
+    if (!addWindow5minRecord) {
+      Alert.alert('Error', 'Función addWindow5minRecord no disponible');
+      return;
+    }
+
+    try {
+      await addWindow5minRecord({
         inspector: inspector.name,
         timestamp: getNicaraguaTime(),
         stage: params.stage || '',
@@ -113,6 +123,9 @@ export default function Utilization5minTimerScreen() {
         `Utilización: ${utilizationPercentage.toFixed(1)}%\nCapacidad: ${capacityPerHour} ${params.outputUnit}/h`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
+    } catch (error) {
+      console.error('Error saving window:', error);
+      Alert.alert('Error', 'No se pudo guardar la ventana. Intente de nuevo.');
     }
   }, [events, currentState, stateStartTime, output, params, inspector, addWindow5minRecord, timeLeft]);
 
