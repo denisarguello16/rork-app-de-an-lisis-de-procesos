@@ -49,6 +49,11 @@ export default function Utilization5minTimerScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleFinish = useCallback(() => {
+    if (timeLeft > 0) {
+      Alert.alert('Atención', 'El timer aún no ha terminado. Espere a que llegue a 0:00');
+      return;
+    }
+
     setIsRunning(false);
 
     const finalEvents = [...events];
@@ -109,7 +114,7 @@ export default function Utilization5minTimerScreen() {
         [{ text: 'OK', onPress: () => router.back() }]
       );
     }
-  }, [events, currentState, stateStartTime, output, params, inspector, addWindow5minRecord]);
+  }, [events, currentState, stateStartTime, output, params, inspector, addWindow5minRecord, timeLeft]);
 
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
@@ -135,14 +140,7 @@ export default function Utilization5minTimerScreen() {
     };
   }, [isRunning, timeLeft]);
 
-  const hasFinishedRef = useRef(false);
 
-  useEffect(() => {
-    if (timeLeft === 0 && !isRunning && !hasFinishedRef.current) {
-      hasFinishedRef.current = true;
-      handleFinish();
-    }
-  }, [timeLeft, isRunning]);
 
   const handlePlayPause = () => {
     if (!isRunning && !currentState) {
@@ -162,7 +160,6 @@ export default function Utilization5minTimerScreen() {
           text: 'Reiniciar',
           style: 'destructive',
           onPress: () => {
-            hasFinishedRef.current = false;
             setTimeLeft(300);
             setIsRunning(false);
             setOutput(0);
