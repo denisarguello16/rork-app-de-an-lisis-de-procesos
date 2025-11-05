@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Play, Pause, RotateCcw, Plus, Minus } from 'lucide-react-native';
@@ -168,8 +168,8 @@ export default function Utilization5minTimerScreen() {
     setOutput((prev) => Math.max(0, prev + delta));
   };
 
-  const getStateSeconds = (): Record<WindowState, number> => {
-    const stateSeconds: Record<WindowState, number> = {
+  const stateSeconds = useMemo((): Record<WindowState, number> => {
+    const seconds: Record<WindowState, number> = {
       RUN: 0,
       STARVED: 0,
       BLOCKED: 0,
@@ -183,20 +183,22 @@ export default function Utilization5minTimerScreen() {
 
     events.forEach((event) => {
       const duration = (event.endTime ?? 300) - event.startTime;
-      stateSeconds[event.state] += duration;
+      seconds[event.state] += duration;
     });
 
     if (currentState) {
       const currentTime = 300 - timeLeft;
       const duration = currentTime - stateStartTime;
-      stateSeconds[currentState] += duration;
+      seconds[currentState] += duration;
     }
 
-    return stateSeconds;
-  };
+    return seconds;
+  }, [events, currentState, stateStartTime, timeLeft]);
 
-  const stateSeconds = getStateSeconds();
-  const totalRecordedSeconds = Object.values(stateSeconds).reduce((sum, val) => sum + val, 0);
+  const totalRecordedSeconds = useMemo(
+    () => Object.values(stateSeconds).reduce((sum, val) => sum + val, 0),
+    [stateSeconds]
+  );
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
