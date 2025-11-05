@@ -193,8 +193,10 @@ function doPost(e) {
       
       // Agregar encabezados si la hoja está vacía
       if (productivitySheet.getLastRow() === 0) {
-        productivitySheet.getRange(1, 1, 1, 10).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output', 'Events', 'Utilization %', 'Capacity per Hour'
+        productivitySheet.getRange(1, 1, 1, 18).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output',
+          'RUN %', 'STARVED %', 'BLOCKED %', 'SETUP %', 'AJUSTE %', 'SANIT %', 'FALLA %', 'LOGISTICA %', 'OTROS %',
+          'Utilization %', 'Capacity per Hour'
         ]]);
       }
       
@@ -219,7 +221,15 @@ function doPost(e) {
         data.data.productFamily,
         data.data.outputUnit,
         data.data.output,
-        data.data.events || '',
+        data.data.runPercentage || 0,
+        data.data.starvedPercentage || 0,
+        data.data.blockedPercentage || 0,
+        data.data.setupPercentage || 0,
+        data.data.ajustePercentage || 0,
+        data.data.sanitPercentage || 0,
+        data.data.fallaPercentage || 0,
+        data.data.logisticaPercentage || 0,
+        data.data.otrosPercentage || 0,
         data.data.utilizationPercentage,
         data.data.capacityPerHour
       ];
@@ -380,7 +390,7 @@ function doPost(e) {
 - ID, Inspector, Timestamp, Product Name, Packaging Machine, Cycle Time (seconds), Observations
 
 ### Hoja "Productivity" (Estimación de Productividad)
-- ID, Inspector, Timestamp, Stage, Product Family, Output Unit, Output, Events, Utilization %, Capacity per Hour
+- ID, Inspector, Timestamp, Stage, Product Family, Output Unit, Output, RUN %, STARVED %, BLOCKED %, SETUP %, AJUSTE %, SANIT %, FALLA %, LOGISTICA %, OTROS %, Utilization %, Capacity per Hour
 
 ## Notas Importantes
 - Los datos se guardan localmente en la app primero
