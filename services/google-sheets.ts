@@ -179,6 +179,56 @@ export const testGoogleSheetsConnection = async (): Promise<GoogleSheetsResponse
   };
 };
 
+// Helper function to wait for a specified time
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to make request with retry logic
+const fetchWithRetry = async (
+  url: string,
+  options: RequestInit,
+  maxRetries: number = 3
+): Promise<Response> => {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // If we get a rate limit error (429) or service unavailable (503), retry
+      if (response.status === 429 || response.status === 503) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
+        
+        console.log(`⏳ Rate limited or service unavailable. Retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
+        
+        if (attempt < maxRetries - 1) {
+          await wait(waitTime);
+          continue;
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+      
+      // If it's an abort error, don't retry
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
+      
+      // If we still have retries left, wait and try again
+      if (attempt < maxRetries - 1) {
+        const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+        console.log(`⏳ Request failed. Retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await wait(waitTime);
+        continue;
+      }
+    }
+  }
+  
+  throw lastError || new Error('Failed to fetch after retries');
+};
+
 // Function to save rejection data to Google Sheets
 export const saveRejectionDataToSheets = async (data: RejectionData): Promise<GoogleSheetsResponse> => {
   // Check if Google Sheets is configured
@@ -206,29 +256,61 @@ export const saveRejectionDataToSheets = async (data: RejectionData): Promise<Go
 
     // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (increased for retries)
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithRetry(
+      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
       },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+      3 // max 3 retries
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      
+      // Check if it's a rate limit error
+      if (response.status === 429) {
+        console.warn('⚠️ Google Sheets rate limit exceeded');
+        return {
+          success: false,
+          error: 'Límite de solicitudes excedido. Los datos se guardaron localmente y se sincronizarán más tarde.'
+        };
+      }
+      
+      // Check if it's HTML error page (like "Too many requests" page)
+      if (errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected in HTML response');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
     
     // Check if response is HTML (indicates wrong URL or deployment issue)
     if (responseText.trim().startsWith('<')) {
+      // Check if it's a rate limit page
+      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
       throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
     }
     
@@ -296,42 +378,61 @@ export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<Go
 
     // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithRetry(
+      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
       },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+      3
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        console.warn('⚠️ Google Sheets rate limit exceeded');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
     
-    // Check if response is HTML (indicates wrong URL or deployment issue)
     if (responseText.trim().startsWith('<')) {
+      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
       throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
     }
     
     try {
       const result = JSON.parse(responseText);
       return result;
-    } catch (parseError) {
+    } catch {
       throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
     }
   } catch (error) {
     console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
     
-    // Handle different types of errors with user-friendly messages
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         return {
@@ -395,35 +496,56 @@ export const saveWindow5minDataToSheets = async (data: Window5minData): Promise<
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithRetry(
+      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
       },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+      3
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        console.warn('⚠️ Google Sheets rate limit exceeded');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
     
     if (responseText.trim().startsWith('<')) {
+      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
       throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
     }
     
     try {
       const result = JSON.parse(responseText);
       return result;
-    } catch (parseError) {
+    } catch {
       throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
     }
   } catch (error) {
@@ -481,35 +603,56 @@ export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<Go
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithRetry(
+      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
       },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+      3
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        console.warn('⚠️ Google Sheets rate limit exceeded');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
     
     if (responseText.trim().startsWith('<')) {
+      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
       throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
     }
     
     try {
       const result = JSON.parse(responseText);
       return result;
-    } catch (parseError) {
+    } catch {
       throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
     }
   } catch (error) {
@@ -607,36 +750,57 @@ export const saveCapacityDataToSheets = async (data: CapacityData): Promise<Goog
 
     // Add timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithRetry(
+      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
       },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+      3
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('HTTP Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        console.warn('⚠️ Google Sheets rate limit exceeded');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      console.error('HTTP Error Response:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const responseText = await response.text();
     
     // Check if response is HTML (indicates wrong URL or deployment issue)
     if (responseText.trim().startsWith('<')) {
+      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
       throw new Error('El servidor devolvió HTML. Verifica la configuración del Google Apps Script.');
     }
     
     try {
       const result = JSON.parse(responseText);
       return result;
-    } catch (parseError) {
+    } catch {
       throw new Error(`Respuesta no es JSON válido: ${responseText.substring(0, 200)}...`);
     }
   } catch (error) {
