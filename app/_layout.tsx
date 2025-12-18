@@ -57,6 +57,34 @@ function RootLayoutNav() {
           presentation: "card"
         }} 
       />
+      <Stack.Screen 
+        name="rejection-form" 
+        options={{ 
+          title: "Registro de Rechazos",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="utilization-5min-config" 
+        options={{ 
+          title: "Configuración de Productividad",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="utilization-5min-timer" 
+        options={{ 
+          title: "Monitor de Productividad",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="cycle-time-form" 
+        options={{ 
+          title: "Registro de Tiempo de Ciclo",
+          presentation: "card"
+        }} 
+      />
     </Stack>
   );
 }
