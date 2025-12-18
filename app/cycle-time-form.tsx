@@ -11,19 +11,18 @@ import { PRODUCT_NAMES } from '@/constants/product-names';
 import { PackagingMachine } from '@/types/production';
 import { getNicaraguaTime } from '@/constants/timezone';
 
-const MONITORED_RESOURCES: PackagingMachine[] = [
-  'ULMA 1 (Central)',
-  'ULMA 2 (Izquierda)',
-  'Multivac R-105',
-  'VS-95',
+const MONITORED_RESOURCES = [
   'Sierra 1',
   'Sierra 2',
   'Sierra 3',
-  'Indicador 30',
-  'Indicador 40',
+  'ULMA 2',
+  'Multivac R-105',
+  'VS-95',
+  'Indicador 80',
   'Indicador 70',
-  'Indicador 80'
-];
+  'Indicador 40',
+  'Indicador 30',
+] as const;
 
 export default function CycleTimeFormScreen() {
   const {
