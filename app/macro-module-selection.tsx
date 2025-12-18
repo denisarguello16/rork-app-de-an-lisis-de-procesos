@@ -66,6 +66,7 @@ export default function MacroModuleSelectionScreen() {
             <Text style={styles.feature}>• Estimación de Productividad</Text>
             <Text style={styles.feature}>• Registro de Rechazos</Text>
             <Text style={styles.feature}>• Tiempo de Setup y Paros</Text>
+            <Text style={styles.feature}>• Registro de Tiempos de Ciclo</Text>
           </View>
 
           <Button

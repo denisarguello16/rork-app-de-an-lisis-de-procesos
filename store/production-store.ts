@@ -21,7 +21,7 @@ const initialState: ProductionStore = {
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
   const [inspector, setInspectorState] = useState<Inspector | null>(initialState.inspector);
-  const [selectedModule, setSelectedModule] = useState<'capacity' | 'rejection' | 'setup' | 'utilization-5min' | null>(initialState.selectedModule);
+  const [selectedModule, setSelectedModule] = useState<'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null>(initialState.selectedModule);
   const [capacityRecords, setCapacityRecords] = useState<CapacityData[]>(initialState.capacityRecords);
 
   const [rejectionRecords, setRejectionRecords] = useState<RejectionData[]>(initialState.rejectionRecords);
@@ -87,7 +87,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('capacity', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('capacity', newRecord);
     }
     
@@ -109,7 +109,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('rejection', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('rejection', newRecord);
     }
     
@@ -129,7 +129,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('setup', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('setup', newRecord);
     }
     
@@ -149,7 +149,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('cycle-time', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('cycle-time', newRecord);
     }
     
@@ -169,7 +169,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       if (!result.success) {
         await syncService.addToPendingSync('productivity', newRecord);
       }
-    } catch (error) {
+    } catch {
       await syncService.addToPendingSync('productivity', newRecord);
     }
     

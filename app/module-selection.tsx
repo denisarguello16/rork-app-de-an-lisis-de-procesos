@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { BarChart3, XCircle, Clock, Activity } from 'lucide-react-native';
+import { BarChart3, XCircle, Clock, Activity, Timer } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,8 +11,8 @@ import { Colors } from '@/constants/colors';
 export default function ModuleSelectionScreen() {
   const { inspector, setSelectedModule, clearSession } = useProductionStore();
 
-  const handleModuleSelect = (module: 'capacity' | 'rejection' | 'setup' | 'utilization-5min') => {
-    if (!module || !['capacity', 'rejection', 'setup', 'utilization-5min'].includes(module)) {
+  const handleModuleSelect = (module: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min') => {
+    if (!module || !['capacity', 'rejection', 'setup', 'cycle-time', 'utilization-5min'].includes(module)) {
       return;
     }
     setSelectedModule(module);
@@ -21,6 +21,8 @@ export default function ModuleSelectionScreen() {
       router.push('/rejection-form');
     } else if (module === 'setup') {
       router.push('/setup-time-form');
+    } else if (module === 'cycle-time') {
+      router.push('/cycle-time-form');
     } else if (module === 'capacity') {
       router.push('/capacity-form');
     } else if (module === 'utilization-5min') {
@@ -157,6 +159,31 @@ export default function ModuleSelectionScreen() {
           <Button
             title="Seleccionar Módulo"
             onPress={() => handleModuleSelect('setup')}
+            style={styles.selectButton}
+          />
+        </Card>
+
+        <Card style={styles.moduleCard}>
+          <View style={styles.moduleHeader}>
+            <Timer size={40} color="#8b5cf6" />
+            <Text style={styles.moduleTitle}>Registro de Tiempos de Ciclo</Text>
+          </View>
+          
+          <Text style={styles.moduleDescription}>
+            Medición de tiempos de ciclo por producto y recurso:
+          </Text>
+          
+          <View style={styles.featureList}>
+            <Text style={styles.feature}>• Tiempo de ciclo por producto</Text>
+            <Text style={styles.feature}>• Monitoreo por recurso (Sierras, Empacadoras, Indicadores)</Text>
+            <Text style={styles.feature}>• Registro de observaciones</Text>
+            <Text style={styles.feature}>• Análisis de eficiencia de proceso</Text>
+            <Text style={styles.feature}>• Identificación de cuellos de botella</Text>
+          </View>
+
+          <Button
+            title="Seleccionar Módulo"
+            onPress={() => handleModuleSelect('cycle-time')}
             style={styles.selectButton}
           />
         </Card>
