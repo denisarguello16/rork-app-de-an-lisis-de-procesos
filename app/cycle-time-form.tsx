@@ -87,7 +87,7 @@ export default function CycleTimeFormScreen() {
     });
     setErrors({});
 
-    router.back();
+    router.push('/module-selection');
   };
 
   return (
