@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -86,8 +86,6 @@ export default function CycleTimeFormScreen() {
       observations: '',
     });
     setErrors({});
-
-    router.push('/module-selection');
   };
 
   return (
