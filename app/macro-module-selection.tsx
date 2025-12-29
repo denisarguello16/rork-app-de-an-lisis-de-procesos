@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Beef, Bone, Beef as CowIcon } from 'lucide-react-native';
+import { Beef, Bone } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -79,7 +79,10 @@ export default function MacroModuleSelectionScreen() {
 
         <Card style={styles.moduleCard}>
           <View style={styles.moduleHeader}>
-            <CowIcon size={48} color="#7c2d12" />
+            <Image 
+              source={{ uri: 'https://r2-pub.rork.com/generated-images/fb2d6729-70f2-492c-afd9-fb37b44b1dab.png' }}
+              style={styles.cowIcon}
+            />
             <Text style={styles.moduleTitle}>Matanza</Text>
           </View>
           
@@ -196,5 +199,9 @@ const styles = StyleSheet.create({
   },
   selectButton: {
     marginTop: 8,
+  },
+  cowIcon: {
+    width: 48,
+    height: 48,
   },
 });
