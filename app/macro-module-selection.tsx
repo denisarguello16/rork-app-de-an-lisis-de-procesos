@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Beef, Bone } from 'lucide-react-native';
+import { Beef, Bone, Beef as CowIcon } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,12 +11,13 @@ import { Colors } from '@/constants/colors';
 export default function MacroModuleSelectionScreen() {
   const { inspector, clearSession } = useProductionStore();
 
-  const handleMacroModuleSelect = (macroModule: 'signature' | 'deshuese') => {
+  const handleMacroModuleSelect = (macroModule: 'signature' | 'deshuese' | 'matanza') => {
     if (macroModule === 'signature') {
       router.push('/module-selection');
     } else if (macroModule === 'deshuese') {
-      // TODO: Crear módulos para Deshuese en el futuro
       console.log('Módulos de Deshuese aún no implementados');
+    } else if (macroModule === 'matanza') {
+      router.push('/matanza-module-selection');
     }
   };
 
@@ -72,6 +73,27 @@ export default function MacroModuleSelectionScreen() {
           <Button
             title="Seleccionar Línea Signature"
             onPress={() => handleMacroModuleSelect('signature')}
+            style={styles.selectButton}
+          />
+        </Card>
+
+        <Card style={styles.moduleCard}>
+          <View style={styles.moduleHeader}>
+            <CowIcon size={48} color="#7c2d12" />
+            <Text style={styles.moduleTitle}>Matanza</Text>
+          </View>
+          
+          <Text style={styles.moduleDescription}>
+            Módulos de análisis y control para el área de Matanza:
+          </Text>
+          
+          <View style={styles.featureList}>
+            <Text style={styles.feature}>• Estimación de Productividad</Text>
+          </View>
+
+          <Button
+            title="Seleccionar Matanza"
+            onPress={() => handleMacroModuleSelect('matanza')}
             style={styles.selectButton}
           />
         </Card>

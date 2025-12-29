@@ -123,6 +123,28 @@ export interface Window5minData {
   capacityPerHour: number;
 }
 
+export interface MatanzaWindow5minData {
+  id: string;
+  inspector: string;
+  timestamp: Date;
+  stage: string;
+  productFamily: string;
+  outputUnit: OutputUnit;
+  output: number;
+  events: StateEvent[];
+  runPercentage: number;
+  starvedPercentage: number;
+  blockedPercentage: number;
+  setupPercentage: number;
+  ajustePercentage: number;
+  sanitPercentage: number;
+  fallaPercentage: number;
+  logisticaPercentage: number;
+  otrosPercentage: number;
+  utilizationPercentage: number;
+  capacityPerHour: number;
+}
+
 export interface ProductionStore {
   inspector: Inspector | null;
   selectedModule: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
@@ -131,5 +153,6 @@ export interface ProductionStore {
   setupTimeRecords: SetupTimeData[];
   cycleTimeRecords: CycleTimeData[];
   window5minRecords: Window5minData[];
+  matanzaWindow5minRecords: MatanzaWindow5minData[];
   productCatalog: ProductCatalog[];
 }
