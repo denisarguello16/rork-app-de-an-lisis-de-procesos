@@ -123,6 +123,14 @@ export interface Window5minData {
   capacityPerHour: number;
 }
 
+export type MatanzaTimeCategory = 'CT' | 'SSOP' | 'PERDIDAS';
+
+export interface MatanzaTimeEvent {
+  category: MatanzaTimeCategory;
+  startTime: number;
+  endTime?: number;
+}
+
 export interface MatanzaWindow5minData {
   id: string;
   inspector: string;
@@ -131,18 +139,15 @@ export interface MatanzaWindow5minData {
   productFamily: string;
   outputUnit: OutputUnit;
   output: number;
-  events: StateEvent[];
-  runPercentage: number;
-  starvedPercentage: number;
-  blockedPercentage: number;
-  setupPercentage: number;
-  ajustePercentage: number;
-  sanitPercentage: number;
-  fallaPercentage: number;
-  logisticaPercentage: number;
-  otrosPercentage: number;
-  utilizationPercentage: number;
-  capacityPerHour: number;
+  events: MatanzaTimeEvent[];
+  ctSeconds: number;
+  ssopSeconds: number;
+  perdidasSeconds: number;
+  ctPercentage: number;
+  ssopPercentage: number;
+  perdidasPercentage: number;
+  totalTime: number;
+  cycleTimePerUnit: number;
 }
 
 export interface ProductionStore {

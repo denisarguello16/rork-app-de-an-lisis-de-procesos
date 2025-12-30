@@ -6,32 +6,28 @@ import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Colors } from '@/constants/colors';
-import { WindowState, StateEvent } from '@/types/production';
+import { MatanzaTimeCategory, MatanzaTimeEvent } from '@/types/production';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getNicaraguaTime } from '@/constants/timezone';
 
-const WINDOW_STATES: WindowState[] = [
-  'RUN',
-  'STARVED',
-  'BLOCKED',
-  'SETUP',
-  'AJUSTE',
-  'SANIT',
-  'FALLA',
-  'LOGÍSTICA',
-  'OTROS',
-];
+const TIME_CATEGORIES: MatanzaTimeCategory[] = ['CT', 'SSOP', 'PERDIDAS'];
 
-const STATE_COLORS: Record<WindowState, string> = {
-  RUN: '#10b981',
-  STARVED: '#f59e0b',
-  BLOCKED: '#ef4444',
-  SETUP: '#8b5cf6',
-  AJUSTE: '#06b6d4',
-  SANIT: '#3b82f6',
-  FALLA: '#dc2626',
-  LOGÍSTICA: '#f97316',
-  OTROS: '#6b7280',
+const CATEGORY_COLORS: Record<MatanzaTimeCategory, string> = {
+  CT: '#10b981',
+  SSOP: '#3b82f6',
+  PERDIDAS: '#ef4444',
+};
+
+const CATEGORY_LABELS: Record<MatanzaTimeCategory, string> = {
+  CT: 'CT (Cycle Time)',
+  SSOP: 'SSOP (Inocuidad)',
+  PERDIDAS: 'Pérdidas',
+};
+
+const CATEGORY_DESCRIPTIONS: Record<MatanzaTimeCategory, string> = {
+  CT: 'Segundos "hands-on" por res',
+  SSOP: 'Lavado de manos y esterilización',
+  PERDIDAS: 'Espera, caminar, búsqueda, reprocesos',
 };
 
 export default function MatanzaUtilizationTimerScreen() {
@@ -39,29 +35,23 @@ export default function MatanzaUtilizationTimerScreen() {
   const params = useLocalSearchParams<{ stage: string; productFamily: string; outputUnit: string }>();
   const { inspector, addMatanzaWindow5minRecord } = useProductionStore();
 
-  const [timeLeft, setTimeLeft] = useState<number>(300);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [output, setOutput] = useState<number>(0);
-  const [events, setEvents] = useState<StateEvent[]>([]);
-  const [currentState, setCurrentState] = useState<WindowState | null>(null);
-  const [stateStartTime, setStateStartTime] = useState<number>(0);
+  const [events, setEvents] = useState<MatanzaTimeEvent[]>([]);
+  const [currentCategory, setCurrentCategory] = useState<MatanzaTimeCategory | null>(null);
+  const [categoryStartTime, setCategoryStartTime] = useState<number>(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleFinish = useCallback(async () => {
     console.log('🔵 handleFinish called');
-    console.log('🔵 timeLeft:', timeLeft);
+    console.log('🔵 elapsedTime:', elapsedTime);
     console.log('🔵 inspector:', inspector);
-    console.log('🔵 addMatanzaWindow5minRecord:', typeof addMatanzaWindow5minRecord);
     console.log('🔵 events:', events);
-    console.log('🔵 currentState:', currentState);
+    console.log('🔵 currentCategory:', currentCategory);
     console.log('🔵 output:', output);
     
-    if (timeLeft > 0) {
-      Alert.alert('Atención', 'El timer aún no ha terminado. Espere a que llegue a 0:00');
-      return;
-    }
-
     if (!inspector) {
       console.error('❌ Inspector no definido');
       Alert.alert('Error', 'Inspector no definido');
@@ -77,41 +67,50 @@ export default function MatanzaUtilizationTimerScreen() {
     setIsRunning(false);
 
     const finalEvents = [...events];
-    if (currentState) {
+    if (currentCategory) {
       finalEvents.push({
-        state: currentState,
-        startTime: stateStartTime,
-        endTime: 300,
+        category: currentCategory,
+        startTime: categoryStartTime,
+        endTime: elapsedTime,
       });
     }
 
     console.log('🔵 finalEvents:', finalEvents);
 
-    const stateSecondsMap: Record<WindowState, number> = {
-      RUN: 0,
-      STARVED: 0,
-      BLOCKED: 0,
-      SETUP: 0,
-      AJUSTE: 0,
-      SANIT: 0,
-      FALLA: 0,
-      LOGÍSTICA: 0,
-      OTROS: 0,
+    const categorySecondsMap: Record<MatanzaTimeCategory, number> = {
+      CT: 0,
+      SSOP: 0,
+      PERDIDAS: 0,
     };
 
     finalEvents.forEach((event) => {
-      const duration = (event.endTime ?? 300) - event.startTime;
-      stateSecondsMap[event.state] += duration;
+      const duration = (event.endTime ?? elapsedTime) - event.startTime;
+      categorySecondsMap[event.category] += duration;
     });
 
-    console.log('🔵 stateSecondsMap:', stateSecondsMap);
+    console.log('🔵 categorySecondsMap:', categorySecondsMap);
 
-    const runSeconds = stateSecondsMap['RUN'];
-    const utilizationPercentage = (runSeconds / 300) * 100;
-    const capacityPerHour = output * 12;
+    const totalTime = elapsedTime;
+    const ctSeconds = categorySecondsMap['CT'];
+    const ssopSeconds = categorySecondsMap['SSOP'];
+    const perdidasSeconds = categorySecondsMap['PERDIDAS'];
 
-    console.log('🔵 utilizationPercentage:', utilizationPercentage);
-    console.log('🔵 capacityPerHour:', capacityPerHour);
+    const ctPercentage = totalTime > 0 ? (ctSeconds / totalTime) * 100 : 0;
+    const ssopPercentage = totalTime > 0 ? (ssopSeconds / totalTime) * 100 : 0;
+    const perdidasPercentage = totalTime > 0 ? (perdidasSeconds / totalTime) * 100 : 0;
+    
+    const cycleTimePerUnit = output > 0 ? ctSeconds / output : 0;
+
+    console.log('🔵 Calculations:', {
+      totalTime,
+      ctSeconds,
+      ssopSeconds,
+      perdidasSeconds,
+      ctPercentage,
+      ssopPercentage,
+      perdidasPercentage,
+      cycleTimePerUnit,
+    });
 
     const recordData = {
       inspector: inspector.name,
@@ -121,17 +120,14 @@ export default function MatanzaUtilizationTimerScreen() {
       outputUnit: (params.outputUnit as 'piezas' | 'cajas') || 'piezas',
       output,
       events: finalEvents,
-      runPercentage: (stateSecondsMap['RUN'] / 300) * 100,
-      starvedPercentage: (stateSecondsMap['STARVED'] / 300) * 100,
-      blockedPercentage: (stateSecondsMap['BLOCKED'] / 300) * 100,
-      setupPercentage: (stateSecondsMap['SETUP'] / 300) * 100,
-      ajustePercentage: (stateSecondsMap['AJUSTE'] / 300) * 100,
-      sanitPercentage: (stateSecondsMap['SANIT'] / 300) * 100,
-      fallaPercentage: (stateSecondsMap['FALLA'] / 300) * 100,
-      logisticaPercentage: (stateSecondsMap['LOGÍSTICA'] / 300) * 100,
-      otrosPercentage: (stateSecondsMap['OTROS'] / 300) * 100,
-      utilizationPercentage,
-      capacityPerHour,
+      ctSeconds,
+      ssopSeconds,
+      perdidasSeconds,
+      ctPercentage,
+      ssopPercentage,
+      perdidasPercentage,
+      totalTime,
+      cycleTimePerUnit,
     };
 
     console.log('🔵 recordData to save:', JSON.stringify(recordData, null, 2));
@@ -142,9 +138,9 @@ export default function MatanzaUtilizationTimerScreen() {
       console.log('🔵 addMatanzaWindow5minRecord result:', result);
 
       Alert.alert(
-        'Ventana Guardada',
-        `Utilización: ${utilizationPercentage.toFixed(1)}%\nCapacidad: ${capacityPerHour} ${params.outputUnit}/h`,
-        [{ text: 'OK' }]
+        'Datos Guardados',
+        `CT: ${ctPercentage.toFixed(1)}% | SSOP: ${ssopPercentage.toFixed(1)}% | Pérdidas: ${perdidasPercentage.toFixed(1)}%\nCT por unidad: ${cycleTimePerUnit.toFixed(1)}s`,
+        [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
       console.error('❌ Error saving window:', error);
@@ -152,19 +148,14 @@ export default function MatanzaUtilizationTimerScreen() {
         console.error('❌ Error message:', error.message);
         console.error('❌ Error stack:', error.stack);
       }
-      Alert.alert('Error', `No se pudo guardar la ventana: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      Alert.alert('Error', `No se pudo guardar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
-  }, [events, currentState, stateStartTime, output, params, inspector, addMatanzaWindow5minRecord, timeLeft]);
+  }, [events, currentCategory, categoryStartTime, output, params, inspector, addMatanzaWindow5minRecord, elapsedTime]);
 
   useEffect(() => {
-    if (isRunning && timeLeft > 0) {
+    if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            return 0;
-          }
-          return prev - 1;
-        });
+        setElapsedTime((prev) => prev + 1);
       }, 1000);
     } else {
       if (intervalRef.current) {
@@ -178,13 +169,11 @@ export default function MatanzaUtilizationTimerScreen() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, timeLeft]);
-
-
+  }, [isRunning]);
 
   const handlePlayPause = () => {
-    if (!isRunning && !currentState) {
-      Alert.alert('Atención', 'Seleccione un estado antes de iniciar el cronómetro');
+    if (!isRunning && !currentCategory) {
+      Alert.alert('Atención', 'Seleccione una categoría antes de iniciar el cronómetro');
       return;
     }
     setIsRunning(!isRunning);
@@ -200,78 +189,74 @@ export default function MatanzaUtilizationTimerScreen() {
           text: 'Reiniciar',
           style: 'destructive',
           onPress: () => {
-            setTimeLeft(300);
+            setElapsedTime(0);
             setIsRunning(false);
             setOutput(0);
             setEvents([]);
-            setCurrentState(null);
-            setStateStartTime(0);
+            setCurrentCategory(null);
+            setCategoryStartTime(0);
           },
         },
       ]
     );
   };
 
-  const handleStateChange = (newState: WindowState) => {
-    const currentTime = 300 - timeLeft;
-
-    if (currentState) {
-      const completedEvent: StateEvent = {
-        state: currentState,
-        startTime: stateStartTime,
-        endTime: currentTime,
+  const handleCategoryChange = (newCategory: MatanzaTimeCategory) => {
+    if (currentCategory) {
+      const completedEvent: MatanzaTimeEvent = {
+        category: currentCategory,
+        startTime: categoryStartTime,
+        endTime: elapsedTime,
       };
       setEvents((prev) => [...prev, completedEvent]);
     }
 
-    setCurrentState(newState);
-    setStateStartTime(currentTime);
+    setCurrentCategory(newCategory);
+    setCategoryStartTime(elapsedTime);
   };
 
   const handleOutputChange = (delta: number) => {
     setOutput((prev) => Math.max(0, prev + delta));
   };
 
-  const stateSeconds = useMemo((): Record<WindowState, number> => {
-    const seconds: Record<WindowState, number> = {
-      RUN: 0,
-      STARVED: 0,
-      BLOCKED: 0,
-      SETUP: 0,
-      AJUSTE: 0,
-      SANIT: 0,
-      FALLA: 0,
-      LOGÍSTICA: 0,
-      OTROS: 0,
+  const categorySeconds = useMemo((): Record<MatanzaTimeCategory, number> => {
+    const seconds: Record<MatanzaTimeCategory, number> = {
+      CT: 0,
+      SSOP: 0,
+      PERDIDAS: 0,
     };
 
     events.forEach((event) => {
-      const duration = (event.endTime ?? 300) - event.startTime;
-      seconds[event.state] += duration;
+      const duration = (event.endTime ?? elapsedTime) - event.startTime;
+      seconds[event.category] += duration;
     });
 
-    if (currentState) {
-      const currentTime = 300 - timeLeft;
-      const duration = currentTime - stateStartTime;
-      seconds[currentState] += duration;
+    if (currentCategory) {
+      const duration = elapsedTime - categoryStartTime;
+      seconds[currentCategory] += duration;
     }
 
     return seconds;
-  }, [events, currentState, stateStartTime, timeLeft]);
+  }, [events, currentCategory, categoryStartTime, elapsedTime]);
 
-  const totalRecordedSeconds = useMemo(
-    () => Object.values(stateSeconds).reduce((sum, val) => sum + val, 0),
-    [stateSeconds]
-  );
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
+
+  const hours = Math.floor(elapsedTime / 3600);
+  const minutes = Math.floor((elapsedTime % 3600) / 60);
+  const seconds = elapsedTime % 60;
+
+  const formatTime = () => {
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: '#0f172a' }]}>
       <Stack.Screen
         options={{
-          title: 'Ventana en Curso',
+          title: 'Análisis en Curso',
           headerLeft: () => (
             <Button
               title="Cancelar"
@@ -303,13 +288,8 @@ export default function MatanzaUtilizationTimerScreen() {
         </Card>
 
         <Card style={styles.timerCard}>
-          <Text style={styles.timerLabel}>Tiempo Restante</Text>
-          <Text style={styles.timerValue}>
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-          </Text>
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { width: `${(timeLeft / 300) * 100}%` }]} />
-          </View>
+          <Text style={styles.timerLabel}>Tiempo Transcurrido</Text>
+          <Text style={styles.timerValue}>{formatTime()}</Text>
 
           <View style={styles.timerControls}>
             <TouchableOpacity style={styles.controlButton} onPress={handlePlayPause}>
@@ -335,25 +315,26 @@ export default function MatanzaUtilizationTimerScreen() {
           <Text style={styles.outputUnit}>{params.outputUnit}</Text>
         </Card>
 
-        <View style={styles.statesSection}>
-          <Text style={styles.statesTitle}>Estados</Text>
-          <View style={styles.statesGrid}>
-            {WINDOW_STATES.map((state) => (
+        <View style={styles.categoriesSection}>
+          <Text style={styles.categoriesTitle}>Categorías de Tiempo</Text>
+          <View style={styles.categoriesGrid}>
+            {TIME_CATEGORIES.map((category) => (
               <TouchableOpacity
-                key={state}
+                key={category}
                 style={[
-                  styles.stateButton,
+                  styles.categoryButton,
                   {
-                    backgroundColor: STATE_COLORS[state],
-                    opacity: currentState === state ? 1 : 0.7,
-                    borderWidth: currentState === state ? 3 : 0,
+                    backgroundColor: CATEGORY_COLORS[category],
+                    opacity: currentCategory === category ? 1 : 0.7,
+                    borderWidth: currentCategory === category ? 3 : 0,
                     borderColor: '#fff',
                   },
                 ]}
-                onPress={() => handleStateChange(state)}
+                onPress={() => handleCategoryChange(category)}
               >
-                <Text style={styles.stateButtonText}>{state}</Text>
-                <Text style={styles.stateSeconds}>{stateSeconds[state]}s</Text>
+                <Text style={styles.categoryButtonText}>{CATEGORY_LABELS[category]}</Text>
+                <Text style={styles.categoryDescription}>{CATEGORY_DESCRIPTIONS[category]}</Text>
+                <Text style={styles.categorySeconds}>{categorySeconds[category]}s</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -362,8 +343,8 @@ export default function MatanzaUtilizationTimerScreen() {
         <Card style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Resumen Actual</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tiempo Registrado:</Text>
-            <Text style={styles.summaryValue}>{totalRecordedSeconds}s / 300s</Text>
+            <Text style={styles.summaryLabel}>Tiempo Transcurrido:</Text>
+            <Text style={styles.summaryValue}>{elapsedTime}s</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Output Actual:</Text>
@@ -371,15 +352,39 @@ export default function MatanzaUtilizationTimerScreen() {
               {output} {params.outputUnit}
             </Text>
           </View>
+          {output > 0 && categorySeconds.CT > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>CT por Unidad:</Text>
+              <Text style={styles.summaryValue}>{(categorySeconds.CT / output).toFixed(1)}s</Text>
+            </View>
+          )}
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: CATEGORY_COLORS.CT }]}>CT:</Text>
+            <Text style={[styles.summaryValue, { color: CATEGORY_COLORS.CT }]}>
+              {elapsedTime > 0 ? ((categorySeconds.CT / elapsedTime) * 100).toFixed(1) : '0.0'}%
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: CATEGORY_COLORS.SSOP }]}>SSOP:</Text>
+            <Text style={[styles.summaryValue, { color: CATEGORY_COLORS.SSOP }]}>
+              {elapsedTime > 0 ? ((categorySeconds.SSOP / elapsedTime) * 100).toFixed(1) : '0.0'}%
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: CATEGORY_COLORS.PERDIDAS }]}>Pérdidas:</Text>
+            <Text style={[styles.summaryValue, { color: CATEGORY_COLORS.PERDIDAS }]}>
+              {elapsedTime > 0 ? ((categorySeconds.PERDIDAS / elapsedTime) * 100).toFixed(1) : '0.0'}%
+            </Text>
+          </View>
         </Card>
 
-        {timeLeft === 0 && (
-          <Button
-            title="Guardar Ventana"
-            onPress={() => handleFinish()}
-            style={styles.finishButton}
-          />
-        )}
+        <Button
+          title="Guardar y Finalizar"
+          onPress={() => handleFinish()}
+          style={styles.finishButton}
+          disabled={elapsedTime === 0 || output === 0}
+        />
       </ScrollView>
     </View>
   );
@@ -434,20 +439,7 @@ const styles = StyleSheet.create({
     fontSize: 64,
     fontWeight: '700',
     color: Colors.light.text,
-    marginBottom: 16,
-  },
-  progressBarContainer: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.light.border,
-    borderRadius: 4,
-    overflow: 'hidden',
     marginBottom: 24,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: Colors.light.primary,
-    borderRadius: 4,
   },
   timerControls: {
     flexDirection: 'row',
@@ -501,38 +493,38 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     textTransform: 'capitalize',
   },
-  statesSection: {
+  categoriesSection: {
     marginBottom: 16,
   },
-  statesTitle: {
+  categoriesTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#fff',
     marginBottom: 12,
     paddingHorizontal: 4,
   },
-  statesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  categoriesGrid: {
+    gap: 12,
   },
-  stateButton: {
-    width: '31%',
-    padding: 16,
+  categoryButton: {
+    padding: 20,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 80,
+    minHeight: 100,
   },
-  stateButtonText: {
-    fontSize: 14,
+  categoryButtonText: {
+    fontSize: 18,
     fontWeight: '700',
     color: '#fff',
     marginBottom: 4,
-    textAlign: 'center',
   },
-  stateSeconds: {
-    fontSize: 18,
+  categoryDescription: {
+    fontSize: 13,
+    color: '#fff',
+    opacity: 0.9,
+    marginBottom: 8,
+  },
+  categorySeconds: {
+    fontSize: 24,
     fontWeight: '700',
     color: '#fff',
   },
@@ -559,6 +551,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.light.text,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: Colors.light.border,
+    marginVertical: 12,
   },
   finishButton: {
     marginTop: 8,

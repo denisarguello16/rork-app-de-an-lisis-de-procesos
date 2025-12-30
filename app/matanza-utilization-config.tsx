@@ -54,9 +54,9 @@ export default function MatanzaUtilizationConfigScreen() {
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}>
         <Card style={styles.card}>
           <View style={styles.header}>
-            <Text style={styles.title}>Configuración de Medición</Text>
+            <Text style={styles.title}>Análisis de Productividad</Text>
             <Text style={styles.subtitle}>
-              Configure los parámetros antes de iniciar la medición de 5 minutos
+              Configure la etapa a evaluar. El timer medirá el tiempo dedicado a cada actividad.
             </Text>
           </View>
 
@@ -103,16 +103,18 @@ export default function MatanzaUtilizationConfigScreen() {
 
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
-              Al iniciar, tendrá 5 minutos para registrar estados y contar la producción.
+              Registrará el tiempo por etapa en tres categorías:{"\n"}
+              • CT (Cycle Time): segundos &quot;hands-on&quot; por res{"\n"}
+              • SSOP: lavado de manos y esterilización{"\n"}
+              • Pérdidas: espera, caminar, búsqueda, reprocesos
             </Text>
           </View>
 
           <Button
-            title="Iniciar 05:00"
+            title="Iniciar Timer"
             onPress={handleStart}
             disabled={!isValid}
             style={styles.startButton}
-
           />
         </Card>
       </ScrollView>
