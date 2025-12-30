@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { Play, Pause, RotateCcw, Plus, Minus } from 'lucide-react-native';
+import { Play, Pause, RotateCcw } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -37,10 +37,11 @@ export default function MatanzaUtilizationTimerScreen() {
 
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [output, setOutput] = useState<number>(0);
   const [events, setEvents] = useState<MatanzaTimeEvent[]>([]);
   const [currentCategory, setCurrentCategory] = useState<MatanzaTimeCategory | null>(null);
   const [categoryStartTime, setCategoryStartTime] = useState<number>(0);
+
+  const output = 1;
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -50,7 +51,6 @@ export default function MatanzaUtilizationTimerScreen() {
     console.log('🔵 inspector:', inspector);
     console.log('🔵 events:', events);
     console.log('🔵 currentCategory:', currentCategory);
-    console.log('🔵 output:', output);
     
     if (!inspector) {
       console.error('❌ Inspector no definido');
@@ -139,7 +139,7 @@ export default function MatanzaUtilizationTimerScreen() {
 
       Alert.alert(
         'Datos Guardados',
-        `CT: ${ctPercentage.toFixed(1)}% | SSOP: ${ssopPercentage.toFixed(1)}% | Pérdidas: ${perdidasPercentage.toFixed(1)}%\nCT por unidad: ${cycleTimePerUnit.toFixed(1)}s`,
+        `CT: ${ctPercentage.toFixed(1)}% | SSOP: ${ssopPercentage.toFixed(1)}% | Pérdidas: ${perdidasPercentage.toFixed(1)}%\nCT por canal: ${cycleTimePerUnit.toFixed(1)}s`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
@@ -191,7 +191,6 @@ export default function MatanzaUtilizationTimerScreen() {
           onPress: () => {
             setElapsedTime(0);
             setIsRunning(false);
-            setOutput(0);
             setEvents([]);
             setCurrentCategory(null);
             setCategoryStartTime(0);
@@ -215,9 +214,7 @@ export default function MatanzaUtilizationTimerScreen() {
     setCategoryStartTime(elapsedTime);
   };
 
-  const handleOutputChange = (delta: number) => {
-    setOutput((prev) => Math.max(0, prev + delta));
-  };
+
 
   const categorySeconds = useMemo((): Record<MatanzaTimeCategory, number> => {
     const seconds: Record<MatanzaTimeCategory, number> = {
@@ -301,20 +298,6 @@ export default function MatanzaUtilizationTimerScreen() {
           </View>
         </Card>
 
-        <Card style={styles.outputCard}>
-          <Text style={styles.outputLabel}>Contador de Output</Text>
-          <View style={styles.outputCounter}>
-            <TouchableOpacity style={styles.outputButton} onPress={() => handleOutputChange(-1)}>
-              <Minus size={32} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.outputValue}>{output}</Text>
-            <TouchableOpacity style={styles.outputButton} onPress={() => handleOutputChange(1)}>
-              <Plus size={32} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.outputUnit}>{params.outputUnit}</Text>
-        </Card>
-
         <View style={styles.categoriesSection}>
           <Text style={styles.categoriesTitle}>Categorías de Tiempo</Text>
           <View style={styles.categoriesGrid}>
@@ -346,16 +329,10 @@ export default function MatanzaUtilizationTimerScreen() {
             <Text style={styles.summaryLabel}>Tiempo Transcurrido:</Text>
             <Text style={styles.summaryValue}>{elapsedTime}s</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Output Actual:</Text>
-            <Text style={styles.summaryValue}>
-              {output} {params.outputUnit}
-            </Text>
-          </View>
-          {output > 0 && categorySeconds.CT > 0 && (
+          {categorySeconds.CT > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>CT por Unidad:</Text>
-              <Text style={styles.summaryValue}>{(categorySeconds.CT / output).toFixed(1)}s</Text>
+              <Text style={styles.summaryLabel}>CT por Canal:</Text>
+              <Text style={styles.summaryValue}>{categorySeconds.CT.toFixed(1)}s</Text>
             </View>
           )}
           <View style={styles.summaryDivider} />
@@ -383,7 +360,7 @@ export default function MatanzaUtilizationTimerScreen() {
           title="Guardar y Finalizar"
           onPress={() => handleFinish()}
           style={styles.finishButton}
-          disabled={elapsedTime === 0 || output === 0}
+          disabled={elapsedTime === 0}
         />
       </ScrollView>
     </View>
@@ -456,43 +433,7 @@ const styles = StyleSheet.create({
   resetButton: {
     backgroundColor: Colors.light.secondary,
   },
-  outputCard: {
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  outputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.text,
-    marginBottom: 16,
-  },
-  outputCounter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-    marginBottom: 8,
-  },
-  outputButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.light.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  outputValue: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: Colors.light.text,
-    minWidth: 80,
-    textAlign: 'center',
-  },
-  outputUnit: {
-    fontSize: 14,
-    color: Colors.light.textSecondary,
-    textTransform: 'capitalize',
-  },
+
   categoriesSection: {
     marginBottom: 16,
   },
