@@ -32,7 +32,7 @@ const CATEGORY_DESCRIPTIONS: Record<MatanzaTimeCategory, string> = {
 
 export default function MatanzaUtilizationTimerScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ stage: string; productFamily: string; outputUnit: string }>();
+  const params = useLocalSearchParams<{ stage: string; employeeCode: string }>();
   const { inspector, addMatanzaWindow5minRecord } = useProductionStore();
 
   const [elapsedTime, setElapsedTime] = useState<number>(0);
@@ -116,8 +116,7 @@ export default function MatanzaUtilizationTimerScreen() {
       inspector: inspector.name,
       timestamp: getNicaraguaTime(),
       stage: params.stage || '',
-      productFamily: params.productFamily || '',
-      outputUnit: (params.outputUnit as 'piezas' | 'cajas') || 'piezas',
+      employeeCode: params.employeeCode || '',
       output,
       events: finalEvents,
       ctSeconds,
@@ -274,13 +273,8 @@ export default function MatanzaUtilizationTimerScreen() {
           </View>
           <View style={styles.headerDivider} />
           <View style={styles.headerInfo}>
-            <Text style={styles.headerLabel}>Producto</Text>
-            <Text style={styles.headerValue}>{params.productFamily}</Text>
-          </View>
-          <View style={styles.headerDivider} />
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerLabel}>Unidad</Text>
-            <Text style={styles.headerValue}>{params.outputUnit}</Text>
+            <Text style={styles.headerLabel}>Código Empleado</Text>
+            <Text style={styles.headerValue}>{params.employeeCode}</Text>
           </View>
         </Card>
 

@@ -136,8 +136,7 @@ export interface MatanzaWindow5minData {
   inspector: string;
   timestamp: Date;
   stage: string;
-  productFamily: string;
-  outputUnit: OutputUnit;
+  employeeCode: string;
   output: number;
   events: MatanzaTimeEvent[];
   ctSeconds: number;
