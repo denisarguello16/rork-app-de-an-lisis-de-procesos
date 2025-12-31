@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Picker } from '@/components/ui/Picker';
 import { Input } from '@/components/ui/Input';
 import { Colors } from '@/constants/colors';
-
+import { EMPLOYEE_CATALOG } from '@/constants/employees';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MatanzaUtilizationConfigScreen() {
@@ -15,6 +15,8 @@ export default function MatanzaUtilizationConfigScreen() {
   const { inspector } = useProductionStore();
   const [stage, setStage] = useState<string>('Recepción del ganado');
   const [employeeCode, setEmployeeCode] = useState<string>('');
+  
+  const employeeName = employeeCode ? EMPLOYEE_CATALOG[employeeCode] : null;
 
   const handleStart = () => {
     if (!stage.trim() || !employeeCode.trim()) {
@@ -118,6 +120,19 @@ export default function MatanzaUtilizationConfigScreen() {
             maxLength={5}
           />
 
+          {employeeCode && (
+            <View style={styles.employeeNameCard}>
+              {employeeName ? (
+                <>
+                  <Text style={styles.employeeNameLabel}>Nombre del Empleado:</Text>
+                  <Text style={styles.employeeName}>{employeeName}</Text>
+                </>
+              ) : (
+                <Text style={styles.employeeNotFound}>Código no encontrado</Text>
+              )}
+            </View>
+          )}
+
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
               Registrará el tiempo por etapa en tres categorías:{"\n"}
@@ -190,6 +205,34 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.light.text,
+  },
+  employeeNameCard: {
+    backgroundColor: '#f0fdf4',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: -8,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  employeeNameLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#15803d',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  employeeName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  employeeNotFound: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#dc2626',
+    textAlign: 'center',
   },
 
   infoBox: {
