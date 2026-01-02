@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Activity } from 'lucide-react-native';
+import { Activity, Clock } from 'lucide-react-native';
 import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -11,12 +11,18 @@ import { Colors } from '@/constants/colors';
 export default function MatanzaModuleSelectionScreen() {
   const { inspector, setSelectedModule, clearSession } = useProductionStore();
 
-  const handleModuleSelect = (module: 'matanza-utilization-5min') => {
-    if (!module || module !== 'matanza-utilization-5min') {
+  const handleModuleSelect = (module: 'matanza-utilization-5min' | 'matanza-productivity') => {
+    if (!module) {
       return;
     }
-    setSelectedModule('utilization-5min');
-    router.push('/matanza-utilization-config');
+    
+    if (module === 'matanza-utilization-5min') {
+      setSelectedModule('utilization-5min');
+      router.push('/matanza-utilization-config');
+    } else if (module === 'matanza-productivity') {
+      setSelectedModule('utilization-5min');
+      router.push('/matanza-productivity-config');
+    }
   };
 
   const handleBack = () => {
@@ -71,6 +77,31 @@ export default function MatanzaModuleSelectionScreen() {
           <Button
             title="Seleccionar Módulo"
             onPress={() => handleModuleSelect('matanza-utilization-5min')}
+            style={styles.selectButton}
+          />
+        </Card>
+
+        <Card style={styles.moduleCard}>
+          <View style={styles.moduleHeader}>
+            <Clock size={40} color="#10b981" />
+            <Text style={styles.moduleTitle}>Estimación de Productividad</Text>
+          </View>
+          
+          <Text style={styles.moduleDescription}>
+            Análisis de productividad en ventanas de 5 minutos:
+          </Text>
+          
+          <View style={styles.featureList}>
+            <Text style={styles.feature}>• Ventanas de 5 minutos de medición</Text>
+            <Text style={styles.feature}>• Estados: RUN, STARVED, BLOCKED, SETUP, etc.</Text>
+            <Text style={styles.feature}>• Contador de output de producción</Text>
+            <Text style={styles.feature}>• Cálculo de utilización y capacidad por hora</Text>
+            <Text style={styles.feature}>• Registro por empleado y etapa del proceso</Text>
+          </View>
+
+          <Button
+            title="Seleccionar Módulo"
+            onPress={() => handleModuleSelect('matanza-productivity')}
             style={styles.selectButton}
           />
         </Card>
