@@ -53,19 +53,19 @@ export default function MatanzaModuleSelectionScreen() {
         <Card style={styles.moduleCard}>
           <View style={styles.moduleHeader}>
             <Activity size={40} color="#3b82f6" />
-            <Text style={styles.moduleTitle}>Estimación de Productividad</Text>
+            <Text style={styles.moduleTitle}>Estudio de Tiempos por Operación</Text>
           </View>
           
           <Text style={styles.moduleDescription}>
-            Medición de productividad en ventanas de 5 minutos:
+            Estudio de tiempos por etapa del proceso de matanza:
           </Text>
           
           <View style={styles.featureList}>
-            <Text style={styles.feature}>• Cronómetro de 5 minutos (countdown)</Text>
-            <Text style={styles.feature}>• 9 estados mutuamente excluyentes</Text>
-            <Text style={styles.feature}>• Contador de output (piezas o cajas)</Text>
-            <Text style={styles.feature}>• Cálculo automático de utilización y capacidad/h</Text>
-            <Text style={styles.feature}>• Validación: suma de segundos = 300</Text>
+            <Text style={styles.feature}>• Timer para medir tiempo por canal/unidad</Text>
+            <Text style={styles.feature}>• CT (Cycle Time): segundos de mano de obra directa</Text>
+            <Text style={styles.feature}>• Tiempo de inocuidad/SSOP en el puesto</Text>
+            <Text style={styles.feature}>• Pérdidas: esperas, búsqueda, reprocesos, microparos</Text>
+            <Text style={styles.feature}>• Registro de empleado y etapa del proceso</Text>
           </View>
 
           <Button
