@@ -1,4 +1,4 @@
-import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData } from '@/types/production';
+import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData } from '@/types/production';
 import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 
 // Google Sheets configuration
@@ -125,7 +125,7 @@ export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse 
         message: 'Conexión exitosa con Google Sheets',
         details: `Respuesta: ${JSON.stringify(result)}`
       };
-    } catch (parseError) {
+    } catch {
       return {
         success: false,
         error: 'Respuesta no es JSON válido',
@@ -177,6 +177,238 @@ export const testGoogleSheetsConnection = async (): Promise<GoogleSheetsResponse
     message: diagnosis.message,
     error: diagnosis.error
   };
+};
+
+// Function to save Matanza Utilization (Estudio de Tiempos) data to Google Sheets
+export const saveMatanzaUtilizationDataToSheets = async (data: MatanzaWindow5minData): Promise<GoogleSheetsResponse> => {
+  if (!isGoogleSheetsConfigured()) {
+    return {
+      success: false,
+      error: 'Google Sheets not configured. Data saved locally only.'
+    };
+  }
+
+  try {
+    const payload = {
+      type: 'matanza-utilization',
+      data: {
+        id: data.id,
+        inspector: data.inspector,
+        timestamp: formatForGoogleSheets(data.timestamp),
+        stage: data.stage,
+        employeeCode: data.employeeCode,
+        output: data.output,
+        ctSeconds: data.ctSeconds,
+        ssopSeconds: data.ssopSeconds,
+        perdidasSeconds: data.perdidasSeconds,
+        ctPercentage: data.ctPercentage,
+        ssopPercentage: data.ssopPercentage,
+        perdidasPercentage: data.perdidasPercentage,
+        totalTime: data.totalTime,
+        cycleTimePerUnit: data.cycleTimePerUnit
+      }
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetchWithRetry(
+      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      },
+      3
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        console.warn('⚠️ Google Sheets rate limit exceeded');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseText = await response.text();
+    
+    if (responseText.trim().startsWith('<')) {
+      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
+    }
+    
+    try {
+      const result = JSON.parse(responseText);
+      return result;
+    } catch {
+      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+    }
+  } catch (error) {
+    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
+        };
+      }
+      
+      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
+        return {
+          success: false,
+          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
+        };
+      }
+      
+      return {
+        success: false,
+        error: 'Error de sincronización. Los datos se guardaron localmente.'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'Error desconocido. Los datos se guardaron localmente.'
+    };
+  }
+};
+
+// Function to save Matanza Productivity (Estimación) data to Google Sheets
+export const saveMatanzaProductivityDataToSheets = async (data: Window5minData): Promise<GoogleSheetsResponse> => {
+  if (!isGoogleSheetsConfigured()) {
+    return {
+      success: false,
+      error: 'Google Sheets not configured. Data saved locally only.'
+    };
+  }
+
+  try {
+    const payload = {
+      type: 'matanza-productivity',
+      data: {
+        id: data.id,
+        inspector: data.inspector,
+        timestamp: formatForGoogleSheets(data.timestamp),
+        stage: data.stage,
+        productFamily: data.productFamily,
+        outputUnit: data.outputUnit,
+        output: data.output,
+        runPercentage: data.runPercentage,
+        starvedPercentage: data.starvedPercentage,
+        blockedPercentage: data.blockedPercentage,
+        setupPercentage: data.setupPercentage,
+        ajustePercentage: data.ajustePercentage,
+        sanitPercentage: data.sanitPercentage,
+        fallaPercentage: data.fallaPercentage,
+        logisticaPercentage: data.logisticaPercentage,
+        otrosPercentage: data.otrosPercentage,
+        utilizationPercentage: data.utilizationPercentage,
+        capacityPerHour: data.capacityPerHour
+      }
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetchWithRetry(
+      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      },
+      3
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
+        console.warn('⚠️ Google Sheets rate limit exceeded');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseText = await response.text();
+    
+    if (responseText.trim().startsWith('<')) {
+      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
+        console.warn('⚠️ Google Drive rate limit detected');
+        return {
+          success: false,
+          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
+        };
+      }
+      
+      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
+    }
+    
+    try {
+      const result = JSON.parse(responseText);
+      return result;
+    } catch {
+      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+    }
+  } catch (error) {
+    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
+        };
+      }
+      
+      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
+        return {
+          success: false,
+          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
+        };
+      }
+      
+      return {
+        success: false,
+        error: 'Error de sincronización. Los datos se guardaron localmente.'
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'Error desconocido. Los datos se guardaron localmente.'
+    };
+  }
 };
 
 // Helper function to wait for a specified time
@@ -317,7 +549,7 @@ export const saveRejectionDataToSheets = async (data: RejectionData): Promise<Go
     try {
       const result = JSON.parse(responseText);
       return result;
-    } catch (parseError) {
+    } catch {
       throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
     }
   } catch (error) {
@@ -1075,6 +1307,75 @@ function doPost(e) {
       
       productivitySheet.appendRow(row);
       console.log('Successfully added productivity data row');
+      
+    } else if (data.type === 'matanza-utilization') {
+      const matanzaUtilizationSheet = sheet.getSheetByName('MatanzaUtilization') || sheet.insertSheet('MatanzaUtilization');
+      
+      // Add headers if sheet is empty
+      if (matanzaUtilizationSheet.getLastRow() === 0) {
+        matanzaUtilizationSheet.getRange(1, 1, 1, 12).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Code', 'Output',
+          'CT Seconds', 'SSOP Seconds', 'Perdidas Seconds', 'CT %', 'SSOP %', 'Perdidas %', 'Total Time', 'CT per Unit'
+        ]]);
+      }
+      
+      // Add data row
+      const row = [
+        data.data.id,
+        data.data.inspector,
+        data.data.timestamp,
+        data.data.stage,
+        data.data.employeeCode,
+        data.data.output,
+        data.data.ctSeconds,
+        data.data.ssopSeconds,
+        data.data.perdidasSeconds,
+        data.data.ctPercentage,
+        data.data.ssopPercentage,
+        data.data.perdidasPercentage,
+        data.data.totalTime,
+        data.data.cycleTimePerUnit
+      ];
+      
+      matanzaUtilizationSheet.appendRow(row);
+      console.log('Successfully added matanza utilization data row');
+      
+    } else if (data.type === 'matanza-productivity') {
+      const matanzaProductivitySheet = sheet.getSheetByName('MatanzaProductivity') || sheet.insertSheet('MatanzaProductivity');
+      
+      // Add headers if sheet is empty
+      if (matanzaProductivitySheet.getLastRow() === 0) {
+        matanzaProductivitySheet.getRange(1, 1, 1, 18).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Info', 'Output Unit', 'Output',
+          'RUN %', 'STARVED %', 'BLOCKED %', 'SETUP %', 'AJUSTE %', 'SANIT %', 'FALLA %', 'LOGISTICA %', 'OTROS %',
+          'Utilization %', 'Capacity per Hour'
+        ]]);
+      }
+      
+      // Add data row
+      const row = [
+        data.data.id,
+        data.data.inspector,
+        data.data.timestamp,
+        data.data.stage,
+        data.data.productFamily,
+        data.data.outputUnit,
+        data.data.output,
+        data.data.runPercentage || 0,
+        data.data.starvedPercentage || 0,
+        data.data.blockedPercentage || 0,
+        data.data.setupPercentage || 0,
+        data.data.ajustePercentage || 0,
+        data.data.sanitPercentage || 0,
+        data.data.fallaPercentage || 0,
+        data.data.logisticaPercentage || 0,
+        data.data.otrosPercentage || 0,
+        data.data.utilizationPercentage,
+        data.data.capacityPerHour
+      ];
+      
+      matanzaProductivitySheet.appendRow(row);
+      console.log('Successfully added matanza productivity data row');
       
     } else if (data.type === 'test') {
       // Handle test requests

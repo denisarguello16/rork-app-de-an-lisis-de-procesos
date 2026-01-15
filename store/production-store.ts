@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { ProductionStore, Inspector, CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData } from '@/types/production';
 import { PRODUCT_CATALOG } from '@/constants/production';
-import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets, saveWindow5minDataToSheets } from '@/services/google-sheets';
+import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets, saveWindow5minDataToSheets, saveMatanzaUtilizationDataToSheets, saveMatanzaProductivityDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
 
@@ -187,7 +187,27 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     setMatanzaWindow5minRecords(prev => [...prev, newRecord]);
     
     try {
-      const result = await saveWindow5minDataToSheets(newRecord as any);
+      const result = await saveMatanzaUtilizationDataToSheets(newRecord);
+      if (!result.success) {
+        await syncService.addToPendingSync('matanza-utilization', newRecord as any);
+      }
+    } catch {
+      await syncService.addToPendingSync('matanza-utilization', newRecord as any);
+    }
+    
+    return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
+  }, []);
+
+  const addMatanzaProductivityRecord = useCallback(async (record: Omit<Window5minData, 'id'>) => {
+    const newRecord: Window5minData = {
+      ...record,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    setWindow5minRecords(prev => [...prev, newRecord]);
+    
+    try {
+      const result = await saveMatanzaProductivityDataToSheets(newRecord);
       if (!result.success) {
         await syncService.addToPendingSync('matanza-productivity', newRecord as any);
       }
@@ -323,6 +343,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addCycleTimeRecord,
     addWindow5minRecord,
     addMatanzaWindow5minRecord,
+    addMatanzaProductivityRecord,
     getProductByCode,
     clearSession,
   }), [
@@ -343,6 +364,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addCycleTimeRecord,
     addWindow5minRecord,
     addMatanzaWindow5minRecord,
+    addMatanzaProductivityRecord,
     getProductByCode,
     clearSession,
   ]);

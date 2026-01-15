@@ -38,7 +38,7 @@ const STATE_COLORS: Record<WindowState, string> = {
 export default function MatanzaProductivityTimerScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ stage: string; employeeCode: string }>();
-  const { inspector, addWindow5minRecord } = useProductionStore();
+  const { inspector, addMatanzaProductivityRecord } = useProductionStore();
 
   const [timeLeft, setTimeLeft] = useState<number>(300);
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -70,9 +70,9 @@ export default function MatanzaProductivityTimerScreen() {
       return;
     }
 
-    if (!addWindow5minRecord) {
-      console.error('❌ Función addWindow5minRecord no disponible');
-      Alert.alert('Error', 'Función addWindow5minRecord no disponible');
+    if (!addMatanzaProductivityRecord) {
+      console.error('❌ Función addMatanzaProductivityRecord no disponible');
+      Alert.alert('Error', 'Función addMatanzaProductivityRecord no disponible');
       return;
     }
 
@@ -139,9 +139,9 @@ export default function MatanzaProductivityTimerScreen() {
     console.log('🔵 recordData to save:', JSON.stringify(recordData, null, 2));
 
     try {
-      console.log('🔵 Calling addWindow5minRecord...');
-      const result = await addWindow5minRecord(recordData);
-      console.log('🔵 addWindow5minRecord result:', result);
+      console.log('🔵 Calling addMatanzaProductivityRecord...');
+      const result = await addMatanzaProductivityRecord(recordData);
+      console.log('🔵 addMatanzaProductivityRecord result:', result);
 
       Alert.alert(
         'Ventana Guardada',
@@ -156,7 +156,7 @@ export default function MatanzaProductivityTimerScreen() {
       }
       Alert.alert('Error', `No se pudo guardar la ventana: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
-  }, [events, currentState, stateStartTime, output, params, inspector, addWindow5minRecord, timeLeft, employeeName]);
+  }, [events, currentState, stateStartTime, output, params, inspector, addMatanzaProductivityRecord, timeLeft, employeeName]);
 
   useEffect(() => {
     if (isRunning && timeLeft > 0) {

@@ -7,13 +7,15 @@ import {
   saveSetupTimeDataToSheets,
   saveCycleTimeDataToSheets,
   saveWindow5minDataToSheets,
+  saveMatanzaUtilizationDataToSheets,
+  saveMatanzaProductivityDataToSheets,
   testGoogleSheetsConnection
 } from './google-sheets';
 import { getNicaraguaTime } from '@/constants/timezone';
 
 interface PendingSyncItem {
   id: string;
-  type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity' | 'matanza-productivity';
+  type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity' | 'matanza-utilization' | 'matanza-productivity';
   data: CapacityData | RejectionData | SetupTimeData | CycleTimeData | Window5minData | MatanzaWindow5minData;
   timestamp: string;
   attempts: number;
@@ -74,7 +76,7 @@ class SyncService {
 
   // Add item to pending sync queue
   async addToPendingSync(
-    type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity' | 'matanza-productivity',
+    type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity' | 'matanza-utilization' | 'matanza-productivity',
     data: CapacityData | RejectionData | SetupTimeData | CycleTimeData | Window5minData | MatanzaWindow5minData
   ): Promise<void> {
     try {
@@ -266,8 +268,11 @@ class SyncService {
         case 'productivity':
           result = await saveWindow5minDataToSheets(item.data as Window5minData);
           break;
+        case 'matanza-utilization':
+          result = await saveMatanzaUtilizationDataToSheets(item.data as MatanzaWindow5minData);
+          break;
         case 'matanza-productivity':
-          result = await saveWindow5minDataToSheets(item.data as any);
+          result = await saveMatanzaProductivityDataToSheets(item.data as Window5minData);
           break;
         default:
           throw new Error(`Unknown sync type: ${item.type}`);
