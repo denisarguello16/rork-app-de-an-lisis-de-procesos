@@ -2,7 +2,7 @@ import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minDa
 import { formatForGoogleSheets } from '@/constants/timezone';
 
 const GOOGLE_SHEETS_CONFIG = {
-  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbyaJIBpiRoGPrv_l1k7nJAnTsNIL-ArMn8hIzQunBDtSxB1_O-YBIT-2Vm4weD-6X3E/exec',
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbwOv3n_v4YIOiV5k2O9xinxLOxROX8_wUBVArC5nS3xU_42hn29lTgWquqm99m3UafB/exec',
 };
 
 export const isGoogleSheetsConfigured = (): boolean => {
