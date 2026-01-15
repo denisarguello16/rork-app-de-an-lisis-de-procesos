@@ -6,33 +6,25 @@ import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Colors } from '@/constants/colors';
-import { WindowState, StateEvent } from '@/types/production';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getNicaraguaTime } from '@/constants/timezone';
 import { EMPLOYEE_CATALOG } from '@/constants/employees';
 
-const WINDOW_STATES: WindowState[] = [
-  'RUN',
-  'STARVED',
-  'BLOCKED',
-  'SETUP',
-  'AJUSTE',
-  'SANIT',
-  'FALLA',
-  'LOGÍSTICA',
-  'OTROS',
-];
+type MatanzaState = 'CT' | 'SSOP' | 'PERDIDAS';
 
-const STATE_COLORS: Record<WindowState, string> = {
-  RUN: '#10b981',
-  STARVED: '#f59e0b',
-  BLOCKED: '#ef4444',
-  SETUP: '#8b5cf6',
-  AJUSTE: '#06b6d4',
-  SANIT: '#3b82f6',
-  FALLA: '#dc2626',
-  LOGÍSTICA: '#f97316',
-  OTROS: '#6b7280',
+const MATANZA_STATES: MatanzaState[] = ['CT', 'SSOP', 'PERDIDAS'];
+
+const STATE_COLORS: Record<MatanzaState, string> = {
+  CT: '#10b981',
+  SSOP: '#3b82f6',
+  PERDIDAS: '#ef4444',
+};
+
+const STATE_LABELS: Record<MatanzaState, string> = {
+  CT: 'Cycle Time',
+  SSOP: 'SSOP',
+  PERDIDAS: 'Pérdidas',
 };
 
 export default function MatanzaProductivityTimerScreen() {
@@ -43,8 +35,8 @@ export default function MatanzaProductivityTimerScreen() {
   const [timeLeft, setTimeLeft] = useState<number>(300);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [output, setOutput] = useState<number>(0);
-  const [events, setEvents] = useState<StateEvent[]>([]);
-  const [currentState, setCurrentState] = useState<WindowState | null>(null);
+  const [events, setEvents] = useState<{ state: MatanzaState; startTime: number; endTime?: number }[]>([]);
+  const [currentState, setCurrentState] = useState<MatanzaState | null>(null);
   const [stateStartTime, setStateStartTime] = useState<number>(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -89,16 +81,10 @@ export default function MatanzaProductivityTimerScreen() {
 
     console.log('🔵 finalEvents:', finalEvents);
 
-    const stateSecondsMap: Record<WindowState, number> = {
-      RUN: 0,
-      STARVED: 0,
-      BLOCKED: 0,
-      SETUP: 0,
-      AJUSTE: 0,
-      SANIT: 0,
-      FALLA: 0,
-      LOGÍSTICA: 0,
-      OTROS: 0,
+    const stateSecondsMap: Record<MatanzaState, number> = {
+      CT: 0,
+      SSOP: 0,
+      PERDIDAS: 0,
     };
 
     finalEvents.forEach((event) => {
@@ -108,32 +94,36 @@ export default function MatanzaProductivityTimerScreen() {
 
     console.log('🔵 stateSecondsMap:', stateSecondsMap);
 
-    const runSeconds = stateSecondsMap['RUN'];
-    const utilizationPercentage = (runSeconds / 300) * 100;
-    const capacityPerHour = output * 12;
+    const ctSeconds = stateSecondsMap['CT'];
+    const ssopSeconds = stateSecondsMap['SSOP'];
+    const perdidasSeconds = stateSecondsMap['PERDIDAS'];
+    const totalTime = ctSeconds + ssopSeconds + perdidasSeconds;
 
-    console.log('🔵 utilizationPercentage:', utilizationPercentage);
-    console.log('🔵 capacityPerHour:', capacityPerHour);
+    const ctPercentage = totalTime > 0 ? (ctSeconds / totalTime) * 100 : 0;
+    const ssopPercentage = totalTime > 0 ? (ssopSeconds / totalTime) * 100 : 0;
+    const perdidasPercentage = totalTime > 0 ? (perdidasSeconds / totalTime) * 100 : 0;
+    const cycleTimePerUnit = output > 0 ? ctSeconds / output : 0;
+
+    console.log('🔵 ctPercentage:', ctPercentage);
+    console.log('🔵 ssopPercentage:', ssopPercentage);
+    console.log('🔵 perdidasPercentage:', perdidasPercentage);
+    console.log('🔵 cycleTimePerUnit:', cycleTimePerUnit);
 
     const recordData = {
       inspector: inspector.name,
       timestamp: getNicaraguaTime(),
       stage: params.stage || '',
-      productFamily: `Empleado: ${params.employeeCode} - ${employeeName}`,
-      outputUnit: 'piezas' as const,
+      employeeCode: params.employeeCode || '',
       output,
-      events: finalEvents,
-      runPercentage: (stateSecondsMap['RUN'] / 300) * 100,
-      starvedPercentage: (stateSecondsMap['STARVED'] / 300) * 100,
-      blockedPercentage: (stateSecondsMap['BLOCKED'] / 300) * 100,
-      setupPercentage: (stateSecondsMap['SETUP'] / 300) * 100,
-      ajustePercentage: (stateSecondsMap['AJUSTE'] / 300) * 100,
-      sanitPercentage: (stateSecondsMap['SANIT'] / 300) * 100,
-      fallaPercentage: (stateSecondsMap['FALLA'] / 300) * 100,
-      logisticaPercentage: (stateSecondsMap['LOGÍSTICA'] / 300) * 100,
-      otrosPercentage: (stateSecondsMap['OTROS'] / 300) * 100,
-      utilizationPercentage,
-      capacityPerHour,
+      ctSeconds,
+      ssopSeconds,
+      perdidasSeconds,
+      ctPercentage,
+      ssopPercentage,
+      perdidasPercentage,
+      totalTime,
+      cycleTimePerUnit,
+      events: [],
     };
 
     console.log('🔵 recordData to save:', JSON.stringify(recordData, null, 2));
@@ -145,7 +135,7 @@ export default function MatanzaProductivityTimerScreen() {
 
       Alert.alert(
         'Ventana Guardada',
-        `Utilización: ${utilizationPercentage.toFixed(1)}%\nCapacidad: ${capacityPerHour} piezas/h`,
+        `CT: ${ctPercentage.toFixed(1)}%\nSSOP: ${ssopPercentage.toFixed(1)}%\nPérdidas: ${perdidasPercentage.toFixed(1)}%\nCT/Unidad: ${cycleTimePerUnit.toFixed(1)}s`,
         [{ text: 'OK', onPress: () => router.replace('/matanza-module-selection') }]
       );
     } catch (error) {
@@ -156,7 +146,7 @@ export default function MatanzaProductivityTimerScreen() {
       }
       Alert.alert('Error', `No se pudo guardar la ventana: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
-  }, [events, currentState, stateStartTime, output, params, inspector, addMatanzaProductivityRecord, timeLeft, employeeName]);
+  }, [events, currentState, stateStartTime, output, params, inspector, addMatanzaProductivityRecord, timeLeft]);
 
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
@@ -212,11 +202,11 @@ export default function MatanzaProductivityTimerScreen() {
     );
   };
 
-  const handleStateChange = (newState: WindowState) => {
+  const handleStateChange = (newState: MatanzaState) => {
     const currentTime = 300 - timeLeft;
 
     if (currentState) {
-      const completedEvent: StateEvent = {
+      const completedEvent = {
         state: currentState,
         startTime: stateStartTime,
         endTime: currentTime,
@@ -232,17 +222,11 @@ export default function MatanzaProductivityTimerScreen() {
     setOutput((prev) => Math.max(0, prev + delta));
   };
 
-  const stateSeconds = useMemo((): Record<WindowState, number> => {
-    const seconds: Record<WindowState, number> = {
-      RUN: 0,
-      STARVED: 0,
-      BLOCKED: 0,
-      SETUP: 0,
-      AJUSTE: 0,
-      SANIT: 0,
-      FALLA: 0,
-      LOGÍSTICA: 0,
-      OTROS: 0,
+  const stateSeconds = useMemo((): Record<MatanzaState, number> => {
+    const seconds: Record<MatanzaState, number> = {
+      CT: 0,
+      SSOP: 0,
+      PERDIDAS: 0,
     };
 
     events.forEach((event) => {
@@ -333,7 +317,7 @@ export default function MatanzaProductivityTimerScreen() {
         <View style={styles.statesSection}>
           <Text style={styles.statesTitle}>Estados</Text>
           <View style={styles.statesGrid}>
-            {WINDOW_STATES.map((state) => (
+            {MATANZA_STATES.map((state) => (
               <TouchableOpacity
                 key={state}
                 style={[
@@ -347,7 +331,7 @@ export default function MatanzaProductivityTimerScreen() {
                 ]}
                 onPress={() => handleStateChange(state)}
               >
-                <Text style={styles.stateButtonText}>{state}</Text>
+                <Text style={styles.stateButtonText}>{STATE_LABELS[state]}</Text>
                 <Text style={styles.stateSeconds}>{stateSeconds[state]}s</Text>
               </TouchableOpacity>
             ))}

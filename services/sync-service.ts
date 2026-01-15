@@ -272,7 +272,7 @@ class SyncService {
           result = await saveMatanzaUtilizationDataToSheets(item.data as MatanzaWindow5minData);
           break;
         case 'matanza-productivity':
-          result = await saveMatanzaProductivityDataToSheets(item.data as Window5minData);
+          result = await saveMatanzaProductivityDataToSheets(item.data as MatanzaWindow5minData);
           break;
         default:
           throw new Error(`Unknown sync type: ${item.type}`);

@@ -198,13 +198,13 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
   }, []);
 
-  const addMatanzaProductivityRecord = useCallback(async (record: Omit<Window5minData, 'id'>) => {
-    const newRecord: Window5minData = {
+  const addMatanzaProductivityRecord = useCallback(async (record: Omit<MatanzaWindow5minData, 'id'>) => {
+    const newRecord: MatanzaWindow5minData = {
       ...record,
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    setWindow5minRecords(prev => [...prev, newRecord]);
+    setMatanzaWindow5minRecords(prev => [...prev, newRecord]);
     
     try {
       const result = await saveMatanzaProductivityDataToSheets(newRecord);

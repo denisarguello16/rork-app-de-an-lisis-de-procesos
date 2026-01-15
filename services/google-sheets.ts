@@ -294,7 +294,7 @@ export const saveMatanzaUtilizationDataToSheets = async (data: MatanzaWindow5min
 };
 
 // Function to save Matanza Productivity (Estimación) data to Google Sheets
-export const saveMatanzaProductivityDataToSheets = async (data: Window5minData): Promise<GoogleSheetsResponse> => {
+export const saveMatanzaProductivityDataToSheets = async (data: MatanzaWindow5minData): Promise<GoogleSheetsResponse> => {
   if (!isGoogleSheetsConfigured()) {
     return {
       success: false,
@@ -310,20 +310,16 @@ export const saveMatanzaProductivityDataToSheets = async (data: Window5minData):
         inspector: data.inspector,
         timestamp: formatForGoogleSheets(data.timestamp),
         stage: data.stage,
-        productFamily: data.productFamily,
-        outputUnit: data.outputUnit,
+        employeeCode: data.employeeCode,
         output: data.output,
-        runPercentage: data.runPercentage,
-        starvedPercentage: data.starvedPercentage,
-        blockedPercentage: data.blockedPercentage,
-        setupPercentage: data.setupPercentage,
-        ajustePercentage: data.ajustePercentage,
-        sanitPercentage: data.sanitPercentage,
-        fallaPercentage: data.fallaPercentage,
-        logisticaPercentage: data.logisticaPercentage,
-        otrosPercentage: data.otrosPercentage,
-        utilizationPercentage: data.utilizationPercentage,
-        capacityPerHour: data.capacityPerHour
+        ctSeconds: data.ctSeconds,
+        ssopSeconds: data.ssopSeconds,
+        perdidasSeconds: data.perdidasSeconds,
+        ctPercentage: data.ctPercentage,
+        ssopPercentage: data.ssopPercentage,
+        perdidasPercentage: data.perdidasPercentage,
+        totalTime: data.totalTime,
+        cycleTimePerUnit: data.cycleTimePerUnit
       }
     };
 
@@ -1238,10 +1234,9 @@ function doPost(e) {
       
       // Add headers if sheet is empty
       if (matanzaProductivitySheet.getLastRow() === 0) {
-        matanzaProductivitySheet.getRange(1, 1, 1, 17).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Code', 'Output Unit', 'Output',
-          'RUN %', 'STARVED %', 'BLOCKED %', 'SETUP %', 'AJUSTE %', 'SANIT %', 'FALLA %', 'LOGISTICA %', 'OTROS %',
-          'Utilization %', 'Capacity per Hour'
+        matanzaProductivitySheet.getRange(1, 1, 1, 14).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Code', 'Output',
+          'CT Seconds', 'SSOP Seconds', 'Perdidas Seconds', 'CT %', 'SSOP %', 'Perdidas %', 'Total Time', 'CT per Unit'
         ]]);
       }
       
@@ -1251,20 +1246,16 @@ function doPost(e) {
         data.data.inspector,
         data.data.timestamp,
         data.data.stage,
-        data.data.productFamily,
-        data.data.outputUnit,
+        data.data.employeeCode,
         data.data.output,
-        data.data.runPercentage || 0,
-        data.data.starvedPercentage || 0,
-        data.data.blockedPercentage || 0,
-        data.data.setupPercentage || 0,
-        data.data.ajustePercentage || 0,
-        data.data.sanitPercentage || 0,
-        data.data.fallaPercentage || 0,
-        data.data.logisticaPercentage || 0,
-        data.data.otrosPercentage || 0,
-        data.data.utilizationPercentage,
-        data.data.capacityPerHour
+        data.data.ctSeconds,
+        data.data.ssopSeconds,
+        data.data.perdidasSeconds,
+        data.data.ctPercentage,
+        data.data.ssopPercentage,
+        data.data.perdidasPercentage,
+        data.data.totalTime,
+        data.data.cycleTimePerUnit
       ];
       
       matanzaProductivitySheet.appendRow(row);
