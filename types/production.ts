@@ -154,5 +154,4 @@ export interface ProductionStore {
   cycleTimeRecords: CycleTimeData[];
   window5minRecords: Window5minData[];
   matanzaWindow5minRecords: MatanzaWindow5minData[];
-  productCatalog: ProductCatalog[];
 }

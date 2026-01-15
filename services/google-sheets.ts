@@ -1034,8 +1034,11 @@ export const saveCapacityDataToSheets = async (data: CapacityData): Promise<Goog
   }
 };
 
+// OBSOLETE: These functions are for documentation/setup purposes only
+// They are not executed in the app and should be in external documentation
+// Keeping them commented out for reference
 
-
+/* 
 // Function to create the Google Apps Script code (for reference)
 export const getGoogleAppsScriptCode = () => {
   return `
@@ -1316,4 +1319,4 @@ Google Sheets Integration Setup Instructions:
 
 Note: Make sure to test the integration before using in production.
 `;
-};
+}; */

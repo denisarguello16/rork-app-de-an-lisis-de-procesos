@@ -1,13 +1,9 @@
-import { ProductCatalog } from '@/types/production';
-
 export const PRODUCTION_LINES = [
   { key: 'ULMA 1 (Central)', label: 'ULMA 1 (Central)' },
   { key: 'ULMA 2 (Izquierda)', label: 'ULMA 2 (Izquierda)' },
   { key: 'Multivac R-105', label: 'Multivac R-105' },
   { key: 'VS-95', label: 'VS-95' }
 ] as const;
-
-
 
 export const EVENT_TYPES = [
   { key: 'cambio_molde', label: 'Cambio de Molde' },
@@ -21,10 +17,9 @@ export const EVENT_TYPES = [
   { key: 'salida_material_empaque', label: 'Salida por Material de Empaque' }
 ] as const;
 
-
-
-// Catálogo completo de códigos de producto
-export const PRODUCT_CATALOG: ProductCatalog[] = [
+// OBSOLETE: Product catalog moved to PRODUCT_NAMES in constants/product-names.ts
+// This large catalog is no longer used in the app
+/* export const PRODUCT_CATALOG: ProductCatalog[] = [
   { code: '1-013', name: 'SIGNATURE - B/I CC SHANK', category: 'SIGNATURE' },
   { code: '1-017', name: 'SIGNATURE - B/I CC SHANK', category: 'SIGNATURE' },
   { code: '1-019', name: 'SIGNATURE - RIBEYE STEAK', category: 'SIGNATURE' },
@@ -174,5 +169,5 @@ export const PRODUCT_CATALOG: ProductCatalog[] = [
   { code: '3-696', name: 'SIGNATURE - B/I CC FORE SHANK', category: 'SIGNATURE' },
   { code: '3-698', name: 'SIGNATURE - FALDITA DE RES', category: 'SIGNATURE' },
   { code: '3-717', name: 'SIGNATURE - CARNE PICADA', category: 'SIGNATURE' }
-];
+]; */
 

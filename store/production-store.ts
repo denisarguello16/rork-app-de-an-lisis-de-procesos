@@ -3,7 +3,6 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
 import { ProductionStore, Inspector, CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData } from '@/types/production';
-import { PRODUCT_CATALOG } from '@/constants/production';
 import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets, saveWindow5minDataToSheets, saveMatanzaUtilizationDataToSheets, saveMatanzaProductivityDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
@@ -17,7 +16,6 @@ const initialState: ProductionStore = {
   cycleTimeRecords: [],
   window5minRecords: [],
   matanzaWindow5minRecords: [],
-  productCatalog: PRODUCT_CATALOG,
 };
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
@@ -30,7 +28,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const [cycleTimeRecords, setCycleTimeRecords] = useState<CycleTimeData[]>(initialState.cycleTimeRecords);
   const [window5minRecords, setWindow5minRecords] = useState<Window5minData[]>(initialState.window5minRecords);
   const [matanzaWindow5minRecords, setMatanzaWindow5minRecords] = useState<MatanzaWindow5minData[]>(initialState.matanzaWindow5minRecords);
-  const [productCatalog] = useState(PRODUCT_CATALOG);
 
   // Get storage implementation based on platform
   const getStorage = useCallback(() => {
@@ -218,11 +215,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
   }, []);
 
-  const getProductByCode = useCallback((code: string) => {
-    const product = productCatalog.find(p => p.code === code);
-    return product ? { code: product.code, name: product.name } : null;
-  }, [productCatalog]);
-
   const clearSession = useCallback(() => {
     setSelectedModule(null);
   }, []);
@@ -334,7 +326,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     cycleTimeRecords,
     window5minRecords,
     matanzaWindow5minRecords,
-    productCatalog,
     setInspector,
     setSelectedModule,
     addCapacityRecord,
@@ -344,7 +335,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWindow5minRecord,
     addMatanzaWindow5minRecord,
     addMatanzaProductivityRecord,
-    getProductByCode,
     clearSession,
   }), [
     inspector,
@@ -355,7 +345,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     cycleTimeRecords,
     window5minRecords,
     matanzaWindow5minRecords,
-    productCatalog,
     setInspector,
     setSelectedModule,
     addCapacityRecord,
@@ -365,7 +354,6 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     addWindow5minRecord,
     addMatanzaWindow5minRecord,
     addMatanzaProductivityRecord,
-    getProductByCode,
     clearSession,
   ]);
 });
