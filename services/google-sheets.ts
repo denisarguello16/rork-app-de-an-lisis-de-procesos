@@ -4,7 +4,7 @@ import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
 // Google Sheets configuration
 // IMPORTANTE: Debes reemplazar estos valores con los tuyos
 const GOOGLE_SHEETS_CONFIG = {
-  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbyaJIBpiRoGPrv_l1k7nJAnTsNIL-ArMn8hIzQunBDtSxB1_O-YBIT-2Vm4weD-6X3E/exec',
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbxKGqRC5bgEA1e81JZ47btnuWvN1t0NavxdwYHoe-6yuujxihPALnv_QURrbCL3VTng/exec',
   SHEET_ID: '1kwnCBSwNL6qWuXVKfj2LLKKeM3uxNQIZZ3VWAYCdmLI'
 };
 
