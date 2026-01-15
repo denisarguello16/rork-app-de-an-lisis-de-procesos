@@ -1,17 +1,12 @@
 import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData } from '@/types/production';
-import { getNicaraguaTime, formatForGoogleSheets } from '@/constants/timezone';
+import { formatForGoogleSheets } from '@/constants/timezone';
 
-// Google Sheets configuration
-// IMPORTANTE: Debes reemplazar estos valores con los tuyos
 const GOOGLE_SHEETS_CONFIG = {
-  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbxjFMQbh1pdXt1WLF6DQza0GKx1Lpx3aGEV2c8PgdopN1uVucZFbTfn-KZi1_L3PBfm/exec',
-  SHEET_ID: '1kwnCBSwNL6qWuXVKfj2LLKKeM3uxNQIZZ3VWAYCdmLI'
+  API_ENDPOINT: 'https://script.google.com/macros/s/AKfycbyaJIBpiRoGPrv_l1k7nJAnTsNIL-ArMn8hIzQunBDtSxB1_O-YBIT-2Vm4weD-6X3E/exec',
 };
 
-// Check if Google Sheets is properly configured
 export const isGoogleSheetsConfigured = (): boolean => {
-  return GOOGLE_SHEETS_CONFIG.API_ENDPOINT.includes('AKfycb') && 
-         GOOGLE_SHEETS_CONFIG.SHEET_ID.length > 10;
+  return GOOGLE_SHEETS_CONFIG.API_ENDPOINT.includes('AKfycb');
 };
 
 interface GoogleSheetsResponse {
@@ -20,1300 +15,205 @@ interface GoogleSheetsResponse {
   error?: string;
 }
 
-// Function to diagnose Google Sheets configuration
-export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse & { details?: string }> => {
-  // Check if endpoint looks valid
-  if (!GOOGLE_SHEETS_CONFIG.API_ENDPOINT.includes('script.google.com')) {
-    return {
-      success: false,
-      error: 'URL del endpoint no válida. Debe ser una URL de Google Apps Script.',
-      details: `URL actual: ${GOOGLE_SHEETS_CONFIG.API_ENDPOINT}`
-    };
-  }
-
-  if (!GOOGLE_SHEETS_CONFIG.API_ENDPOINT.includes('/exec')) {
-    return {
-      success: false,
-      error: 'URL del endpoint debe terminar en /exec',
-      details: `URL actual: ${GOOGLE_SHEETS_CONFIG.API_ENDPOINT}`
-    };
-  }
-
+const sendToGoogleSheets = async (payload: object): Promise<GoogleSheetsResponse> => {
   try {
-    const testPayload = {
-      type: 'test',
-      data: {
-        timestamp: getNicaraguaTime().toISOString(),
-        message: 'Connection test from app'
-      }
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 10000);
-
-    let response;
-    try {
-      response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        body: JSON.stringify(testPayload),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      if (fetchError instanceof Error) {
-        if (fetchError.name === 'AbortError') {
-          return {
-            success: false,
-            error: 'Tiempo de espera agotado',
-            details: 'La conexión tardó más de 10 segundos. Verifica tu conexión a internet.'
-          };
-        }
-        
-        if (fetchError.message.includes('Failed to fetch')) {
-          return {
-            success: false,
-            error: 'No se pudo conectar con Google Sheets',
-            details: 'Verifica tu conexión a internet o que el script esté desplegado correctamente.'
-          };
-        }
-      }
-      
-      throw fetchError;
-    }
-
-    if (response.type === 'opaque') {
-      return {
-        success: true,
-        message: 'Conexión exitosa con Google Sheets',
-        details: 'El endpoint está accesible. Los datos se enviarán correctamente.'
-      };
-    }
-
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: `Error HTTP ${response.status}: ${response.statusText}`,
-        details: `Respuesta del servidor: ${responseText.substring(0, 500)}`
-      };
-    }
-
-    if (responseText.trim().startsWith('<')) {
-      return {
-        success: false,
-        error: 'El servidor devolvió HTML en lugar de JSON',
-        details: 'Verifica que la URL del script sea correcta y esté desplegado como Web App.'
-      };
-    }
-
-    try {
-      const result = JSON.parse(responseText);
-      return {
-        success: true,
-        message: 'Conexión exitosa con Google Sheets',
-        details: `Respuesta: ${JSON.stringify(result)}`
-      };
-    } catch {
-      return {
-        success: false,
-        error: 'Respuesta no es JSON válido',
-        details: `Respuesta: ${responseText.substring(0, 200)}`
-      };
-    }
-  } catch (error) {
-    console.error('Error en diagnóstico:', error);
+    console.log('📤 Enviando datos a Google Sheets:', JSON.stringify(payload, null, 2));
     
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado',
-          details: 'La conexión tardó más de 10 segundos.'
-        };
-      }
-      
-      if (error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Error de conexión',
-          details: 'No se pudo conectar con Google Sheets. Verifica tu conexión a internet.'
-        };
-      }
-      
-      if (error.message.includes('NetworkError') || error.message.includes('network')) {
-        return {
-          success: false,
-          error: 'Error de red',
-          details: 'Problema de conectividad. Los datos se guardarán localmente.'
-        };
-      }
-    }
+    const response = await fetch(GOOGLE_SHEETS_CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log('✅ Datos enviados a Google Sheets (response type:', response.type, ')');
     
     return {
+      success: true,
+      message: 'Datos enviados a Google Sheets'
+    };
+  } catch (error) {
+    console.error('❌ Error enviando a Google Sheets:', error);
+    return {
       success: false,
-      error: 'Error de conexión',
-      details: 'Los datos se guardarán localmente.'
+      error: error instanceof Error ? error.message : 'Error desconocido'
     };
   }
 };
 
-// Function to test Google Sheets connection
 export const testGoogleSheetsConnection = async (): Promise<GoogleSheetsResponse> => {
-  const diagnosis = await diagnoseGoogleSheetsSetup();
-  return {
-    success: diagnosis.success,
-    message: diagnosis.message,
-    error: diagnosis.error
-  };
+  return sendToGoogleSheets({ type: 'test', data: { timestamp: new Date().toISOString() } });
 };
 
-// Function to save Matanza Utilization (Estudio de Tiempos) data to Google Sheets
-export const saveMatanzaUtilizationDataToSheets = async (data: MatanzaWindow5minData): Promise<GoogleSheetsResponse> => {
+export const diagnoseGoogleSheetsSetup = async (): Promise<GoogleSheetsResponse & { details?: string }> => {
+  const result = await testGoogleSheetsConnection();
+  return { ...result, details: 'Conexión verificada' };
+};
+
+export const saveCapacityDataToSheets = async (data: CapacityData): Promise<GoogleSheetsResponse> => {
   if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
+    return { success: false, error: 'Google Sheets no configurado' };
   }
 
-  try {
-    const payload = {
-      type: 'matanza-utilization',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        stage: data.stage,
-        employeeCode: data.employeeCode,
-        output: data.output,
-        ctSeconds: data.ctSeconds,
-        ssopSeconds: data.ssopSeconds,
-        perdidasSeconds: data.perdidasSeconds,
-        ctPercentage: data.ctPercentage,
-        ssopPercentage: data.ssopPercentage,
-        perdidasPercentage: data.perdidasPercentage,
-        totalTime: data.totalTime,
-        cycleTimePerUnit: data.cycleTimePerUnit
-      }
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetchWithRetry(
-      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      },
-      3
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        console.warn('⚠️ Google Sheets rate limit exceeded');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status}`);
+  return sendToGoogleSheets({
+    type: 'capacity',
+    data: {
+      id: data.id,
+      inspector: data.inspector,
+      timestamp: formatForGoogleSheets(data.timestamp),
+      resourceType: data.resourceType,
+      resourceName: data.resourceName,
+      productName: data.productName,
+      productCode: data.productCode || '',
+      line: data.line || '',
+      stage: data.stage || '',
+      packageSize: data.packageSize,
+      peopleCount: data.peopleCount,
+      piecesProduced: data.piecesProduced,
+      defectivePieces: data.defectivePieces,
+      piecesPerMinute: data.piecesPerMinute
     }
-
-    const responseText = await response.text();
-    
-    if (responseText.trim().startsWith('<')) {
-      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
+  });
 };
 
-// Function to save Matanza Productivity (Estimación) data to Google Sheets
-export const saveMatanzaProductivityDataToSheets = async (data: MatanzaWindow5minData): Promise<GoogleSheetsResponse> => {
-  if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
-  }
-
-  try {
-    const payload = {
-      type: 'matanza-productivity',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        stage: data.stage,
-        employeeCode: data.employeeCode,
-        output: data.output,
-        ctSeconds: data.ctSeconds,
-        ssopSeconds: data.ssopSeconds,
-        perdidasSeconds: data.perdidasSeconds,
-        ctPercentage: data.ctPercentage,
-        ssopPercentage: data.ssopPercentage,
-        perdidasPercentage: data.perdidasPercentage,
-        totalTime: data.totalTime,
-        cycleTimePerUnit: data.cycleTimePerUnit
-      }
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetchWithRetry(
-      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      },
-      3
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        console.warn('⚠️ Google Sheets rate limit exceeded');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    
-    if (responseText.trim().startsWith('<')) {
-      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
-};
-
-// Helper function to wait for a specified time
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Helper function to make request with retry logic
-const fetchWithRetry = async (
-  url: string,
-  options: RequestInit,
-  maxRetries: number = 3
-): Promise<Response> => {
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      
-      // If we get a rate limit error (429) or service unavailable (503), retry
-      if (response.status === 429 || response.status === 503) {
-        const retryAfter = response.headers.get('Retry-After');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
-        
-        console.log(`⏳ Rate limited or service unavailable. Retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
-        
-        if (attempt < maxRetries - 1) {
-          await wait(waitTime);
-          continue;
-        }
-      }
-      
-      return response;
-    } catch (error) {
-      lastError = error as Error;
-      
-      // If it's an abort error, don't retry
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw error;
-      }
-      
-      // If we still have retries left, wait and try again
-      if (attempt < maxRetries - 1) {
-        const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
-        console.log(`⏳ Request failed. Retrying in ${waitTime}ms (attempt ${attempt + 1}/${maxRetries})`);
-        await wait(waitTime);
-        continue;
-      }
-    }
-  }
-  
-  throw lastError || new Error('Failed to fetch after retries');
-};
-
-// Function to save rejection data to Google Sheets
 export const saveRejectionDataToSheets = async (data: RejectionData): Promise<GoogleSheetsResponse> => {
-  // Check if Google Sheets is configured
   if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
+    return { success: false, error: 'Google Sheets no configurado' };
   }
 
-  try {
-    const payload = {
-      type: 'rejection',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        line: data.line,
-        productName: data.productName,
-        packageSize: data.packageSize,
-        rejectionCause: data.rejectionCause,
-        quantity: data.quantity
-      }
-    };
-
-    // Add timeout to the fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (increased for retries)
-
-    const response = await fetchWithRetry(
-      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      },
-      3 // max 3 retries
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      // Check if it's a rate limit error
-      if (response.status === 429) {
-        console.warn('⚠️ Google Sheets rate limit exceeded');
-        return {
-          success: false,
-          error: 'Límite de solicitudes excedido. Los datos se guardaron localmente y se sincronizarán más tarde.'
-        };
-      }
-      
-      // Check if it's HTML error page (like "Too many requests" page)
-      if (errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected in HTML response');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status}`);
+  return sendToGoogleSheets({
+    type: 'rejection',
+    data: {
+      id: data.id,
+      inspector: data.inspector,
+      timestamp: formatForGoogleSheets(data.timestamp),
+      line: data.line,
+      productName: data.productName,
+      packageSize: data.packageSize,
+      rejectionCause: data.rejectionCause,
+      quantity: data.quantity
     }
-
-    const responseText = await response.text();
-    
-    // Check if response is HTML (indicates wrong URL or deployment issue)
-    if (responseText.trim().startsWith('<')) {
-      // Check if it's a rate limit page
-      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    // Handle different types of errors with user-friendly messages
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
+  });
 };
 
-// Function to save Setup Time data to Google Sheets
 export const saveSetupTimeDataToSheets = async (data: SetupTimeData): Promise<GoogleSheetsResponse> => {
-  // Check if Google Sheets is configured
   if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
+    return { success: false, error: 'Google Sheets no configurado' };
   }
 
-  try {
-    const payload = {
-      type: 'setup',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        resourceName: data.resourceName,
-        eventType: data.eventType,
-        eventTime: data.eventTime,
-        description: data.description
-      }
-    };
-
-    // Add timeout to the fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetchWithRetry(
-      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      },
-      3
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        console.warn('⚠️ Google Sheets rate limit exceeded');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status}`);
+  return sendToGoogleSheets({
+    type: 'setup',
+    data: {
+      id: data.id,
+      inspector: data.inspector,
+      timestamp: formatForGoogleSheets(data.timestamp),
+      resourceName: data.resourceName,
+      eventType: data.eventType,
+      eventTime: data.eventTime,
+      description: data.description || ''
     }
-
-    const responseText = await response.text();
-    
-    if (responseText.trim().startsWith('<')) {
-      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
+  });
 };
 
-// Function to save Window 5min data to Google Sheets
-export const saveWindow5minDataToSheets = async (data: Window5minData): Promise<GoogleSheetsResponse> => {
-  if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
-  }
-
-  try {
-    const payload = {
-      type: 'productivity',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        stage: data.stage,
-        productFamily: data.productFamily,
-        outputUnit: data.outputUnit,
-        output: data.output,
-        runPercentage: data.runPercentage,
-        starvedPercentage: data.starvedPercentage,
-        blockedPercentage: data.blockedPercentage,
-        setupPercentage: data.setupPercentage,
-        ajustePercentage: data.ajustePercentage,
-        sanitPercentage: data.sanitPercentage,
-        fallaPercentage: data.fallaPercentage,
-        logisticaPercentage: data.logisticaPercentage,
-        otrosPercentage: data.otrosPercentage,
-        utilizationPercentage: data.utilizationPercentage,
-        capacityPerHour: data.capacityPerHour
-      }
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetchWithRetry(
-      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      },
-      3
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        console.warn('⚠️ Google Sheets rate limit exceeded');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const responseText = await response.text();
-    
-    if (responseText.trim().startsWith('<')) {
-      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
-};
-
-// Function to save Cycle Time data to Google Sheets
 export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<GoogleSheetsResponse> => {
   if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
+    return { success: false, error: 'Google Sheets no configurado' };
   }
 
-  try {
-    const payload = {
-      type: 'cycle-time',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        productName: data.productName,
-        packagingMachine: data.packagingMachine,
-        cycleTime: data.cycleTime,
-        observations: data.observations
-      }
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetchWithRetry(
-      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      },
-      3
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        console.warn('⚠️ Google Sheets rate limit exceeded');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      console.error('❌ HTTP Error Response:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status}`);
+  return sendToGoogleSheets({
+    type: 'cycle-time',
+    data: {
+      id: data.id,
+      inspector: data.inspector,
+      timestamp: formatForGoogleSheets(data.timestamp),
+      productName: data.productName,
+      packagingMachine: data.packagingMachine,
+      cycleTime: data.cycleTime,
+      observations: data.observations || ''
     }
-
-    const responseText = await response.text();
-    
-    if (responseText.trim().startsWith('<')) {
-      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      throw new Error('Server returned HTML. Please verify Google Apps Script configuration.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch {
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
+  });
 };
 
-
-
-// Function to save capacity data to Google Sheets
-export const saveCapacityDataToSheets = async (data: CapacityData): Promise<GoogleSheetsResponse> => {
-  // Check if Google Sheets is configured
+export const saveWindow5minDataToSheets = async (data: Window5minData): Promise<GoogleSheetsResponse> => {
   if (!isGoogleSheetsConfigured()) {
-    return {
-      success: false,
-      error: 'Google Sheets not configured. Data saved locally only.'
-    };
+    return { success: false, error: 'Google Sheets no configurado' };
   }
 
-  try {
-    const payload = {
-      type: 'capacity',
-      data: {
-        id: data.id,
-        inspector: data.inspector,
-        timestamp: formatForGoogleSheets(data.timestamp),
-        resourceType: data.resourceType,
-        resourceName: data.resourceName,
-        productName: data.productName,
-        productCode: data.productCode || '',
-        line: data.line || '',
-        stage: data.stage || '',
-        packageSize: data.packageSize,
-        peopleCount: data.peopleCount,
-        piecesProduced: data.piecesProduced,
-        defectivePieces: data.defectivePieces,
-        piecesPerMinute: data.piecesPerMinute
-      }
-    };
-
-    // Add timeout to the fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetchWithRetry(
-      GOOGLE_SHEETS_CONFIG.API_ENDPOINT,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      },
-      3
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      
-      if (response.status === 429 || errorText.includes('Demasiadas solicitudes') || errorText.includes('Too many requests')) {
-        console.warn('⚠️ Google Sheets rate limit exceeded');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      console.error('HTTP Error Response:', errorText.substring(0, 500));
-      throw new Error(`HTTP error! status: ${response.status}`);
+  return sendToGoogleSheets({
+    type: 'productivity',
+    data: {
+      id: data.id,
+      inspector: data.inspector,
+      timestamp: formatForGoogleSheets(data.timestamp),
+      stage: data.stage,
+      productFamily: data.productFamily,
+      outputUnit: data.outputUnit,
+      output: data.output,
+      runPercentage: data.runPercentage || 0,
+      starvedPercentage: data.starvedPercentage || 0,
+      blockedPercentage: data.blockedPercentage || 0,
+      setupPercentage: data.setupPercentage || 0,
+      ajustePercentage: data.ajustePercentage || 0,
+      sanitPercentage: data.sanitPercentage || 0,
+      fallaPercentage: data.fallaPercentage || 0,
+      logisticaPercentage: data.logisticaPercentage || 0,
+      otrosPercentage: data.otrosPercentage || 0,
+      utilizationPercentage: data.utilizationPercentage,
+      capacityPerHour: data.capacityPerHour
     }
-
-    const responseText = await response.text();
-    
-    // Check if response is HTML (indicates wrong URL or deployment issue)
-    if (responseText.trim().startsWith('<')) {
-      if (responseText.includes('Demasiadas solicitudes') || responseText.includes('Too many requests')) {
-        console.warn('⚠️ Google Drive rate limit detected');
-        return {
-          success: false,
-          error: 'Demasiadas solicitudes a Google Sheets. Los datos se guardaron localmente.'
-        };
-      }
-      
-      throw new Error('El servidor devolvió HTML. Verifica la configuración del Google Apps Script.');
-    }
-    
-    try {
-      const result = JSON.parse(responseText);
-      return result;
-    } catch {
-      throw new Error(`Respuesta no es JSON válido: ${responseText.substring(0, 200)}...`);
-    }
-  } catch (error) {
-    console.warn('⚠️ Google Sheets sync failed (data saved locally):', error);
-    
-    // Handle different types of errors with user-friendly messages
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return {
-          success: false,
-          error: 'Tiempo de espera agotado. Los datos se guardaron localmente.'
-        };
-      }
-      
-      if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
-        return {
-          success: false,
-          error: 'Sin conexión a internet. Los datos se guardaron localmente.'
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Error de sincronización. Los datos se guardaron localmente.'
-      };
-    }
-    
-    return {
-      success: false,
-      error: 'Error desconocido. Los datos se guardaron localmente.'
-    };
-  }
+  });
 };
 
-// OBSOLETE: These functions are for documentation/setup purposes only
-// They are not executed in the app and should be in external documentation
-// Keeping them commented out for reference
-
-/* 
-// Function to create the Google Apps Script code (for reference)
-export const getGoogleAppsScriptCode = () => {
-  return `
-// Google Apps Script code to handle POST requests and save data to Google Sheets
-// Deploy this as a web app with execute permissions set to "Anyone"
-// IMPORTANT: Replace 'YOUR_GOOGLE_SHEET_ID' with your actual Google Sheet ID
-
-function doPost(e) {
-  try {
-    // Log the incoming request for debugging
-    console.log('Received POST request:', e.postData.contents);
-    
-    const data = JSON.parse(e.postData.contents);
-    
-    // IMPORTANT: Replace 'YOUR_GOOGLE_SHEET_ID' with your actual Google Sheet ID
-    const sheet = SpreadsheetApp.openById('YOUR_GOOGLE_SHEET_ID');
-    
-    // Log successful sheet access
-    console.log('Successfully opened sheet:', sheet.getName());
-    
-    if (data.type === 'capacity') {
-      const capacitySheet = sheet.getSheetByName('Capacity') || sheet.insertSheet('Capacity');
-      
-      if (capacitySheet.getLastRow() === 0) {
-        capacitySheet.getRange(1, 1, 1, 13).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Resource Type', 'Resource Name', 'Product Name',
-          'Product Code', 'Line', 'Stage', 'Package Size', 'People Count', 'Pieces Produced',
-          'Defective Pieces', 'Pieces Per Minute'
-        ]]);
-      }
-      
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.resourceType,
-        data.data.resourceName,
-        data.data.productName,
-        data.data.productCode || '',
-        data.data.line || '',
-        data.data.stage || '',
-        data.data.packageSize,
-        data.data.peopleCount,
-        data.data.piecesProduced,
-        data.data.defectivePieces,
-        data.data.piecesPerMinute
-      ];
-      
-      capacitySheet.appendRow(row);
-      console.log('Successfully added capacity data row');
-      
-
-    } else if (data.type === 'rejection') {
-      const rejectionSheet = sheet.getSheetByName('Rejection') || sheet.insertSheet('Rejection');
-      
-      // Add headers if sheet is empty
-      if (rejectionSheet.getLastRow() === 0) {
-        rejectionSheet.getRange(1, 1, 1, 8).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Line', 'Product Name', 'Package Size', 'Rejection Cause', 'Quantity'
-        ]]);
-      }
-      
-      // Add data row
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.line,
-        data.data.productName,
-        data.data.packageSize,
-        data.data.rejectionCause,
-        data.data.quantity
-      ];
-      
-      rejectionSheet.appendRow(row);
-      console.log('Successfully added rejection data row');
-      
-
-    } else if (data.type === 'setup') {
-      const setupSheet = sheet.getSheetByName('Setup') || sheet.insertSheet('Setup');
-      
-      if (setupSheet.getLastRow() === 0) {
-        setupSheet.getRange(1, 1, 1, 7).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Resource Name', 'Event Type', 'Event Time (minutes)', 'Description'
-        ]]);
-      }
-      
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.resourceName,
-        data.data.eventType,
-        data.data.eventTime,
-        data.data.description || ''
-      ];
-      
-      setupSheet.appendRow(row);
-      console.log('Successfully added setup time data row');
-      
-    } else if (data.type === 'cycle-time') {
-      const cycleTimeSheet = sheet.getSheetByName('CycleTime') || sheet.insertSheet('CycleTime');
-      
-      // Add headers if sheet is empty
-      if (cycleTimeSheet.getLastRow() === 0) {
-        cycleTimeSheet.getRange(1, 1, 1, 7).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Product Name', 'Packaging Machine', 'Cycle Time (seconds)', 'Observations'
-        ]]);
-      }
-      
-      // Add data row
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.productName,
-        data.data.packagingMachine,
-        data.data.cycleTime,
-        data.data.observations || ''
-      ];
-      
-      cycleTimeSheet.appendRow(row);
-      console.log('Successfully added cycle time data row');
-      
-    } else if (data.type === 'productivity') {
-      const productivitySheet = sheet.getSheetByName('Productivity') || sheet.insertSheet('Productivity');
-      
-      // Add headers if sheet is empty
-      if (productivitySheet.getLastRow() === 0) {
-        productivitySheet.getRange(1, 1, 1, 18).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output',
-          'RUN %', 'STARVED %', 'BLOCKED %', 'SETUP %', 'AJUSTE %', 'SANIT %', 'FALLA %', 'LOGISTICA %', 'OTROS %',
-          'Utilization %', 'Capacity per Hour'
-        ]]);
-      }
-      
-      // Add data row
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.stage,
-        data.data.productFamily,
-        data.data.outputUnit,
-        data.data.output,
-        data.data.runPercentage || 0,
-        data.data.starvedPercentage || 0,
-        data.data.blockedPercentage || 0,
-        data.data.setupPercentage || 0,
-        data.data.ajustePercentage || 0,
-        data.data.sanitPercentage || 0,
-        data.data.fallaPercentage || 0,
-        data.data.logisticaPercentage || 0,
-        data.data.otrosPercentage || 0,
-        data.data.utilizationPercentage,
-        data.data.capacityPerHour
-      ];
-      
-      productivitySheet.appendRow(row);
-      console.log('Successfully added productivity data row');
-      
-    } else if (data.type === 'matanza-utilization') {
-      const matanzaUtilizationSheet = sheet.getSheetByName('MatanzaUtilization') || sheet.insertSheet('MatanzaUtilization');
-      
-      // Add headers if sheet is empty
-      if (matanzaUtilizationSheet.getLastRow() === 0) {
-        matanzaUtilizationSheet.getRange(1, 1, 1, 14).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Code', 'Output',
-          'CT Seconds', 'SSOP Seconds', 'Perdidas Seconds', 'CT %', 'SSOP %', 'Perdidas %', 'Total Time', 'CT per Unit'
-        ]]);
-      }
-      
-      // Add data row
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.stage,
-        data.data.employeeCode,
-        data.data.output,
-        data.data.ctSeconds,
-        data.data.ssopSeconds,
-        data.data.perdidasSeconds,
-        data.data.ctPercentage,
-        data.data.ssopPercentage,
-        data.data.perdidasPercentage,
-        data.data.totalTime,
-        data.data.cycleTimePerUnit
-      ];
-      
-      matanzaUtilizationSheet.appendRow(row);
-      console.log('Successfully added matanza utilization data row');
-      
-    } else if (data.type === 'matanza-productivity') {
-      const matanzaProductivitySheet = sheet.getSheetByName('MatanzaProductivity') || sheet.insertSheet('MatanzaProductivity');
-      
-      // Add headers if sheet is empty
-      if (matanzaProductivitySheet.getLastRow() === 0) {
-        matanzaProductivitySheet.getRange(1, 1, 1, 14).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Code', 'Output',
-          'CT Seconds', 'SSOP Seconds', 'Perdidas Seconds', 'CT %', 'SSOP %', 'Perdidas %', 'Total Time', 'CT per Unit'
-        ]]);
-      }
-      
-      // Add data row
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.stage,
-        data.data.employeeCode,
-        data.data.output,
-        data.data.ctSeconds,
-        data.data.ssopSeconds,
-        data.data.perdidasSeconds,
-        data.data.ctPercentage,
-        data.data.ssopPercentage,
-        data.data.perdidasPercentage,
-        data.data.totalTime,
-        data.data.cycleTimePerUnit
-      ];
-      
-      matanzaProductivitySheet.appendRow(row);
-      console.log('Successfully added matanza productivity data row');
-      
-    } else if (data.type === 'test') {
-      // Handle test requests
-      console.log('Test request received:', data.data);
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: true, message: 'Test successful', timestamp: new Date().toISOString() }))
-        .setMimeType(ContentService.MimeType.JSON);
-    } else {
-      console.log('Unknown data type received:', data.type);
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: false, error: 'Unknown data type: ' + data.type }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    console.log('Data processing completed successfully');
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: true, message: 'Data saved successfully', timestamp: new Date().toISOString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (error) {
-    console.error('Error in doPost:', error.toString());
-    console.error('Error stack:', error.stack);
-    return ContentService
-      .createTextOutput(JSON.stringify({ 
-        success: false, 
-        error: error.toString(),
-        stack: error.stack,
-        timestamp: new Date().toISOString()
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
+export const saveMatanzaUtilizationDataToSheets = async (data: MatanzaWindow5minData): Promise<GoogleSheetsResponse> => {
+  if (!isGoogleSheetsConfigured()) {
+    return { success: false, error: 'Google Sheets no configurado' };
   }
-}
-`;
+
+  return sendToGoogleSheets({
+    type: 'matanza-utilization',
+    data: {
+      id: data.id,
+      inspector: data.inspector,
+      timestamp: formatForGoogleSheets(data.timestamp),
+      stage: data.stage,
+      employeeCode: data.employeeCode,
+      output: data.output,
+      ctSeconds: data.ctSeconds,
+      ssopSeconds: data.ssopSeconds,
+      perdidasSeconds: data.perdidasSeconds,
+      ctPercentage: data.ctPercentage,
+      ssopPercentage: data.ssopPercentage,
+      perdidasPercentage: data.perdidasPercentage,
+      totalTime: data.totalTime,
+      cycleTimePerUnit: data.cycleTimePerUnit
+    }
+  });
 };
 
-// Instructions for setting up Google Sheets integration
-export const getSetupInstructions = () => {
-  return `
-Google Sheets Integration Setup Instructions:
+export const saveMatanzaProductivityDataToSheets = async (data: MatanzaWindow5minData): Promise<GoogleSheetsResponse> => {
+  if (!isGoogleSheetsConfigured()) {
+    return { success: false, error: 'Google Sheets no configurado' };
+  }
 
-1. Create a new Google Sheet for your production data
-2. Note the Sheet ID from the URL (the long string between /d/ and /edit)
-3. Go to script.google.com and create a new project
-4. Replace the default code with the Google Apps Script code provided
-5. Replace 'YOUR_GOOGLE_SHEET_ID' with your actual Sheet ID
-6. Deploy the script as a web app:
-   - Click "Deploy" > "New deployment"
-   - Choose "Web app" as the type
-   - Set execute as "Me"
-   - Set access to "Anyone"
-   - Click "Deploy"
-7. Copy the web app URL and replace 'YOUR_SCRIPT_ID' in the API_ENDPOINT
-8. Update the GOOGLE_SHEETS_CONFIG in this file with your actual values
-
-Note: Make sure to test the integration before using in production.
-`;
-}; */
+  return sendToGoogleSheets({
+    type: 'matanza-productivity',
+    data: {
+      id: data.id,
+      inspector: data.inspector,
+      timestamp: formatForGoogleSheets(data.timestamp),
+      stage: data.stage,
+      employeeCode: data.employeeCode,
+      output: data.output,
+      ctSeconds: data.ctSeconds,
+      ssopSeconds: data.ssopSeconds,
+      perdidasSeconds: data.perdidasSeconds,
+      ctPercentage: data.ctPercentage,
+      ssopPercentage: data.ssopPercentage,
+      perdidasPercentage: data.perdidasPercentage,
+      totalTime: data.totalTime,
+      cycleTimePerUnit: data.cycleTimePerUnit
+    }
+  });
+};

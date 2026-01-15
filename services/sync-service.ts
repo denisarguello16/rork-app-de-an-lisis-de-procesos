@@ -9,7 +9,6 @@ import {
   saveWindow5minDataToSheets,
   saveMatanzaUtilizationDataToSheets,
   saveMatanzaProductivityDataToSheets,
-  testGoogleSheetsConnection
 } from './google-sheets';
 import { getNicaraguaTime } from '@/constants/timezone';
 
@@ -44,7 +43,6 @@ class SyncService {
     return SyncService.instance;
   }
 
-  // Get storage implementation based on platform
   private getStorage() {
     if (Platform.OS === 'web') {
       return {
@@ -58,26 +56,21 @@ class SyncService {
         setItem: async (key: string, value: string) => {
           try {
             localStorage.setItem(key, value);
-          } catch {
-            // Ignore storage errors on web
-          }
+          } catch {}
         },
         removeItem: async (key: string) => {
           try {
             localStorage.removeItem(key);
-          } catch {
-            // Ignore storage errors on web
-          }
+          } catch {}
         }
       };
     }
     return AsyncStorage;
   }
 
-  // Add item to pending sync queue
   async addToPendingSync(
-    type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity' | 'matanza-utilization' | 'matanza-productivity',
-    data: CapacityData | RejectionData | SetupTimeData | CycleTimeData | Window5minData | MatanzaWindow5minData
+    type: PendingSyncItem['type'],
+    data: PendingSyncItem['data']
   ): Promise<void> {
     try {
       const storage = this.getStorage();
@@ -91,7 +84,6 @@ class SyncService {
         attempts: 0
       };
 
-      // Remove any existing item with the same ID to avoid duplicates
       const filteredItems = existingItems.filter(item => item.id !== data.id);
       const updatedItems = [...filteredItems, newItem];
 
@@ -101,34 +93,14 @@ class SyncService {
     }
   }
 
-  // Get all pending sync items
   async getPendingSyncItems(): Promise<PendingSyncItem[]> {
     try {
       const storage = this.getStorage();
       const stored = await storage.getItem(this.pendingSyncKey);
-      if (!stored) return [];
+      if (!stored || typeof stored !== 'string') return [];
       
-      if (typeof stored !== 'string') {
-        console.error('❌ Pending sync data is not a string:', typeof stored);
-        await storage.removeItem(this.pendingSyncKey);
-        return [];
-      }
-      
-      let items;
-      try {
-        items = JSON.parse(stored) as PendingSyncItem[];
-      } catch (parseError) {
-        console.error('❌ JSON parse error in pending sync:', parseError);
-        console.error('❌ Stored data:', stored.substring(0, 100));
-        await storage.removeItem(this.pendingSyncKey);
-        return [];
-      }
-      
-      if (!Array.isArray(items)) {
-        console.error('❌ Pending sync items is not an array');
-        await storage.removeItem(this.pendingSyncKey);
-        return [];
-      }
+      const items = JSON.parse(stored) as PendingSyncItem[];
+      if (!Array.isArray(items)) return [];
       
       return items.map(item => ({
         ...item,
@@ -139,15 +111,10 @@ class SyncService {
       }));
     } catch (error) {
       console.error('Error getting pending sync items:', error);
-      try {
-        const storage = this.getStorage();
-        await storage.removeItem(this.pendingSyncKey);
-      } catch {}
       return [];
     }
   }
 
-  // Remove item from pending sync queue
   async removeFromPendingSync(id: string): Promise<void> {
     try {
       const storage = this.getStorage();
@@ -159,7 +126,6 @@ class SyncService {
     }
   }
 
-  // Update sync status
   async updateSyncStatus(status: Partial<SyncStatus>): Promise<void> {
     try {
       const storage = this.getStorage();
@@ -171,12 +137,11 @@ class SyncService {
     }
   }
 
-  // Get sync status
   async getSyncStatus(): Promise<SyncStatus> {
     try {
       const storage = this.getStorage();
       const stored = await storage.getItem(this.syncStatusKey);
-      if (!stored) {
+      if (!stored || typeof stored !== 'string') {
         return {
           isOnline: true,
           isSyncing: false,
@@ -186,39 +151,12 @@ class SyncService {
         };
       }
       
-      if (typeof stored !== 'string') {
-        console.error('❌ Sync status data is not a string:', typeof stored);
-        await storage.removeItem(this.syncStatusKey);
-        return {
-          isOnline: true,
-          isSyncing: false,
-          pendingCount: 0,
-          lastSyncTime: null,
-          lastSyncError: null
-        };
-      }
-      
-      let status;
-      try {
-        status = JSON.parse(stored) as SyncStatus;
-      } catch (parseError) {
-        console.error('❌ JSON parse error in sync status:', parseError);
-        await storage.removeItem(this.syncStatusKey);
-        return {
-          isOnline: true,
-          isSyncing: false,
-          pendingCount: 0,
-          lastSyncTime: null,
-          lastSyncError: null
-        };
-      }
-      
+      const status = JSON.parse(stored) as SyncStatus;
       return {
         ...status,
         lastSyncTime: status.lastSyncTime ? new Date(status.lastSyncTime) : null
       };
-    } catch (error) {
-      console.error('Error getting sync status:', error);
+    } catch {
       return {
         isOnline: true,
         isSyncing: false,
@@ -229,26 +167,17 @@ class SyncService {
     }
   }
 
-  // Check internet connectivity
   async checkConnectivity(): Promise<boolean> {
     try {
-      const result = await Promise.race([
-        testGoogleSheetsConnection(),
-        new Promise<{ success: boolean }>((_, reject) => 
-          setTimeout(() => reject(new Error('Connectivity check timeout')), 5000)
-        )
-      ]);
-      
-      const isOnline = result.success;
-      await this.updateSyncStatus({ isOnline });
-      return isOnline;
+      await fetch('https://www.google.com/favicon.ico', { mode: 'no-cors' });
+      await this.updateSyncStatus({ isOnline: true });
+      return true;
     } catch {
       await this.updateSyncStatus({ isOnline: false });
       return false;
     }
   }
 
-  // Sync a single item
   private async syncItem(item: PendingSyncItem): Promise<boolean> {
     try {
       let result;
@@ -275,63 +204,42 @@ class SyncService {
           result = await saveMatanzaProductivityDataToSheets(item.data as MatanzaWindow5minData);
           break;
         default:
-          throw new Error(`Unknown sync type: ${item.type}`);
+          return false;
       }
 
       if (result.success) {
         await this.removeFromPendingSync(item.id);
         return true;
-      } else {
-        return false;
       }
+      return false;
     } catch (error) {
-      console.error(`❌ Error syncing ${item.type} item:`, item.id, error);
+      console.error(`Error syncing ${item.type} item:`, item.id, error);
       return false;
     }
   }
 
-  // Start automatic sync when connection is detected
   async startAutoSync(): Promise<void> {
-    try {
-      // Stop existing interval if any
-      this.stopAutoSync();
-      
-      // Initial sync attempt (non-blocking)
-      this.syncPendingItems().catch(error => {
-        console.log('⚠️ Initial sync skipped:', error);
-      });
-      
-      // Set up periodic sync every 30 seconds
-      this.syncInterval = setInterval(async () => {
-        try {
-          const pendingItems = await this.getPendingSyncItems();
-          if (pendingItems.length > 0) {
-            const isOnline = await this.checkConnectivity();
-            if (isOnline && !this.syncInProgress) {
-              this.syncPendingItems().catch(error => {
-                console.log('⚠️ Periodic sync failed:', error);
-              });
-            }
-          }
-        } catch (error) {
-          console.log('⚠️ Periodic sync check failed:', error);
+    this.stopAutoSync();
+    
+    this.syncPendingItems().catch(() => {});
+    
+    this.syncInterval = setInterval(async () => {
+      try {
+        const pendingItems = await this.getPendingSyncItems();
+        if (pendingItems.length > 0 && !this.syncInProgress) {
+          this.syncPendingItems().catch(() => {});
         }
-      }, 30000); // 30 seconds
-    } catch (error) {
-      console.log('⚠️ Auto-sync setup failed:', error);
-    }
+      } catch {}
+    }, 30000);
   }
 
-  // Stop automatic sync
   stopAutoSync(): void {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
       this.syncInterval = null;
-      console.log('🛑 Auto-sync stopped');
     }
   }
 
-  // Sync all pending items
   async syncPendingItems(): Promise<{ success: boolean; synced: number; failed: number; error?: string }> {
     if (this.syncInProgress) {
       return { success: false, synced: 0, failed: 0, error: 'Sync already in progress' };
@@ -342,11 +250,10 @@ class SyncService {
     try {
       await this.updateSyncStatus({ isSyncing: true, lastSyncError: null });
 
-      // Check connectivity first
       const isOnline = await this.checkConnectivity();
       if (!isOnline) {
-        await this.updateSyncStatus({ isSyncing: false, lastSyncError: 'No internet connection' });
-        return { success: false, synced: 0, failed: 0, error: 'No internet connection' };
+        await this.updateSyncStatus({ isSyncing: false, lastSyncError: 'Sin conexión' });
+        return { success: false, synced: 0, failed: 0, error: 'Sin conexión' };
       }
 
       const pendingItems = await this.getPendingSyncItems();
@@ -363,9 +270,7 @@ class SyncService {
       let synced = 0;
       let failed = 0;
 
-      // Sync items one by one to avoid overwhelming the server
       for (const item of pendingItems) {
-        // Skip items that have exceeded max retries
         if (item.attempts >= this.maxRetries) {
           failed++;
           continue;
@@ -376,7 +281,6 @@ class SyncService {
           synced++;
         } else {
           failed++;
-          // Increment attempt count
           item.attempts++;
           const storage = this.getStorage();
           const allItems = await this.getPendingSyncItems();
@@ -384,56 +288,40 @@ class SyncService {
           await storage.setItem(this.pendingSyncKey, JSON.stringify(updatedItems));
         }
 
-        // Small delay between syncs to be nice to the server
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
       const remainingItems = await this.getPendingSyncItems();
-      const finalStatus: Partial<SyncStatus> = {
+      await this.updateSyncStatus({
         isSyncing: false,
         pendingCount: remainingItems.length,
-        lastSyncTime: getNicaraguaTime()
-      };
-
-      if (failed > 0 && synced === 0) {
-        finalStatus.lastSyncError = `Failed to sync ${failed} items`;
-      } else if (failed > 0) {
-        finalStatus.lastSyncError = `Partially successful: ${synced} synced, ${failed} failed`;
-      }
-
-      await this.updateSyncStatus(finalStatus);
+        lastSyncTime: getNicaraguaTime(),
+        lastSyncError: failed > 0 ? `${failed} items fallidos` : null
+      });
 
       return { success: synced > 0 || failed === 0, synced, failed };
 
-    } catch (error) {
-      console.error('❌ Sync process error:', error);
+    } catch {
       await this.updateSyncStatus({ 
         isSyncing: false, 
-        lastSyncError: error instanceof Error ? error.message : 'Unknown sync error'
+        lastSyncError: 'Error de sincronización'
       });
-      return { 
-        success: false, 
-        synced: 0, 
-        failed: 0, 
-        error: error instanceof Error ? error.message : 'Unknown sync error'
-      };
+      return { success: false, synced: 0, failed: 0, error: 'Error de sincronización' };
     } finally {
       this.syncInProgress = false;
     }
   }
 
-  // Clear all pending sync items (use with caution)
   async clearPendingSync(): Promise<void> {
     try {
       const storage = this.getStorage();
       await storage.removeItem(this.pendingSyncKey);
       await this.updateSyncStatus({ pendingCount: 0 });
-    } catch (error) {
-      console.error('Error clearing pending sync:', error);
+    } catch {
+      // Silently ignore
     }
   }
 
-  // Get sync statistics
   async getSyncStats(): Promise<{
     pendingCount: number;
     isOnline: boolean;

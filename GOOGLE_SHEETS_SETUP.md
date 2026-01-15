@@ -1,108 +1,55 @@
-# Configuración de Google Sheets para la App de Producción
+# Configuración de Google Sheets
 
-## Instrucciones de Configuración
+## Paso 1: Abre tu Google Sheet
 
-### 1. Crear Google Sheet
-1. Ve a [Google Sheets](https://sheets.google.com)
-2. Crea una nueva hoja de cálculo
-3. Nómbrala "Datos de Producción" o similar
-4. Copia el ID de la hoja desde la URL (la cadena larga entre `/d/` y `/edit`)
+Abre el Google Sheet donde quieres guardar los datos.
 
-### 2. Configurar Google Apps Script
-1. Ve a [Google Apps Script](https://script.google.com)
-2. Crea un nuevo proyecto
-3. Reemplaza el código predeterminado con el siguiente:
+## Paso 2: Abre el Editor de Apps Script
+
+1. Ve a **Extensiones** → **Apps Script**
+2. Borra todo el código que aparezca por defecto
+3. Copia y pega el siguiente código:
 
 ```javascript
-// IMPORTANTE: Este script incluye deduplicación para evitar registros duplicados
 function doPost(e) {
   try {
-    console.log('Received POST request:', e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet();
+    var data = JSON.parse(e.postData.contents);
     
-    const data = JSON.parse(e.postData.contents);
-    
-    // Reemplaza con tu ID de Google Sheet
-    const sheet = SpreadsheetApp.openById('1kwnCBSwNL6qWuXVKfj2LLKKeM3uxNQIZZ3VWAYCdmLI');
-    
-    console.log('Successfully opened sheet:', sheet.getName());
-    
-    // Función auxiliar para verificar si un ID ya existe en la hoja
-    function isDuplicate(targetSheet, id) {
-      if (targetSheet.getLastRow() <= 1) return false; // Solo encabezados o vacío
-      
-      const idColumn = targetSheet.getRange(2, 1, targetSheet.getLastRow() - 1, 1).getValues();
-      return idColumn.some(row => row[0] === id);
-    }
+    Logger.log('Tipo recibido: ' + data.type);
+    Logger.log('Datos: ' + JSON.stringify(data.data));
     
     if (data.type === 'capacity') {
-      const capacitySheet = sheet.getSheetByName('Capacity') || sheet.insertSheet('Capacity');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (capacitySheet.getLastRow() === 0) {
-        capacitySheet.getRange(1, 1, 1, 13).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Resource Type', 'Resource Name', 
-          'Product Name', 'Product Code', 'Line', 'Stage', 'Package Size', 
-          'People Count', 'Pieces Produced', 'Defective Pieces', 'Pieces Per Minute'
-        ]]);
+      var capacitySheet = sheet.getSheetByName('Capacity');
+      if (!capacitySheet) {
+        capacitySheet = sheet.insertSheet('Capacity');
+        capacitySheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Tipo Recurso', 'Nombre Recurso', 'Producto', 'Código', 'Línea', 'Etapa', 'Tamaño Empaque', 'Personas', 'Piezas Producidas', 'Piezas Defectuosas', 'Piezas/Min']);
       }
-      
-      // Verificar duplicados
-      if (isDuplicate(capacitySheet, data.data.id)) {
-        console.log('Duplicate capacity record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
+      capacitySheet.appendRow([
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
-        data.data.resourceType || '',
-        data.data.resourceName || '',
+        data.data.resourceType,
+        data.data.resourceName,
         data.data.productName,
-        data.data.productCode || '',
-        data.data.line || '',
-        data.data.stage || '',
+        data.data.productCode,
+        data.data.line,
+        data.data.stage,
         data.data.packageSize,
         data.data.peopleCount,
         data.data.piecesProduced,
-        data.data.defectivePieces || 0,
+        data.data.defectivePieces,
         data.data.piecesPerMinute
-      ];
-      
-      capacitySheet.appendRow(row);
-      console.log('Successfully added capacity data row');
-      
-    } else if (data.type === 'rejection') {
-      const rejectionSheet = sheet.getSheetByName('Rejection') || sheet.insertSheet('Rejection');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (rejectionSheet.getLastRow() === 0) {
-        rejectionSheet.getRange(1, 1, 1, 8).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Line', 'Product Name', 'Package Size', 'Rejection Cause', 'Quantity'
-        ]]);
+      ]);
+    }
+    
+    else if (data.type === 'rejection') {
+      var rejectionSheet = sheet.getSheetByName('Rejection');
+      if (!rejectionSheet) {
+        rejectionSheet = sheet.insertSheet('Rejection');
+        rejectionSheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Línea', 'Producto', 'Tamaño Empaque', 'Causa Rechazo', 'Cantidad']);
       }
-      
-      // Verificar duplicados
-      if (isDuplicate(rejectionSheet, data.data.id)) {
-        console.log('Duplicate rejection record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
+      rejectionSheet.appendRow([
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
@@ -111,109 +58,50 @@ function doPost(e) {
         data.data.packageSize,
         data.data.rejectionCause,
         data.data.quantity
-      ];
-      
-      rejectionSheet.appendRow(row);
-      console.log('Successfully added rejection data row');
-      
-    } else if (data.type === 'setup') {
-      const setupSheet = sheet.getSheetByName('Setup') || sheet.insertSheet('Setup');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (setupSheet.getLastRow() === 0) {
-        setupSheet.getRange(1, 1, 1, 7).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Resource Name', 'Event Type', 'Event Time (minutes)', 'Description'
-        ]]);
+      ]);
+    }
+    
+    else if (data.type === 'setup') {
+      var setupSheet = sheet.getSheetByName('Setup');
+      if (!setupSheet) {
+        setupSheet = sheet.insertSheet('Setup');
+        setupSheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Recurso', 'Tipo Evento', 'Tiempo (min)', 'Descripción']);
       }
-      
-      // Verificar duplicados
-      if (isDuplicate(setupSheet, data.data.id)) {
-        console.log('Duplicate setup record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
+      setupSheet.appendRow([
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
         data.data.resourceName,
         data.data.eventType,
         data.data.eventTime,
-        data.data.description || ''
-      ];
-      
-      setupSheet.appendRow(row);
-      console.log('Successfully added setup time data row');
-      
-    } else if (data.type === 'cycle-time') {
-      const cycleTimeSheet = sheet.getSheetByName('CycleTime') || sheet.insertSheet('CycleTime');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (cycleTimeSheet.getLastRow() === 0) {
-        cycleTimeSheet.getRange(1, 1, 1, 7).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Product Name', 'Packaging Machine', 'Cycle Time (seconds)', 'Observations'
-        ]]);
+        data.data.description
+      ]);
+    }
+    
+    else if (data.type === 'cycle-time') {
+      var cycleSheet = sheet.getSheetByName('CycleTime');
+      if (!cycleSheet) {
+        cycleSheet = sheet.insertSheet('CycleTime');
+        cycleSheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Producto', 'Máquina Empaque', 'Tiempo Ciclo (seg)', 'Observaciones']);
       }
-      
-      // Verificar duplicados
-      if (isDuplicate(cycleTimeSheet, data.data.id)) {
-        console.log('Duplicate cycle time record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
+      cycleSheet.appendRow([
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
         data.data.productName,
         data.data.packagingMachine,
         data.data.cycleTime,
-        data.data.observations || ''
-      ];
-      
-      cycleTimeSheet.appendRow(row);
-      console.log('Successfully added cycle time data row');
-      
-    } else if (data.type === 'productivity') {
-      const productivitySheet = sheet.getSheetByName('Productivity') || sheet.insertSheet('Productivity');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (productivitySheet.getLastRow() === 0) {
-        productivitySheet.getRange(1, 1, 1, 18).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Product Family', 'Output Unit', 'Output',
-          'RUN %', 'STARVED %', 'BLOCKED %', 'SETUP %', 'AJUSTE %', 'SANIT %', 'FALLA %', 'LOGISTICA %', 'OTROS %',
-          'Utilization %', 'Capacity per Hour'
-        ]]);
+        data.data.observations
+      ]);
+    }
+    
+    else if (data.type === 'productivity') {
+      var productivitySheet = sheet.getSheetByName('Productivity');
+      if (!productivitySheet) {
+        productivitySheet = sheet.insertSheet('Productivity');
+        productivitySheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Etapa', 'Familia Producto', 'Unidad', 'Output', 'RUN%', 'STARVED%', 'BLOCKED%', 'SETUP%', 'AJUSTE%', 'SANIT%', 'FALLA%', 'LOGISTICA%', 'OTROS%', 'Utilización%', 'Capacidad/Hora']);
       }
-      
-      // Verificar duplicados
-      if (isDuplicate(productivitySheet, data.data.id)) {
-        console.log('Duplicate productivity record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
+      productivitySheet.appendRow([
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
@@ -221,180 +109,130 @@ function doPost(e) {
         data.data.productFamily,
         data.data.outputUnit,
         data.data.output,
-        data.data.runPercentage || 0,
-        data.data.starvedPercentage || 0,
-        data.data.blockedPercentage || 0,
-        data.data.setupPercentage || 0,
-        data.data.ajustePercentage || 0,
-        data.data.sanitPercentage || 0,
-        data.data.fallaPercentage || 0,
-        data.data.logisticaPercentage || 0,
-        data.data.otrosPercentage || 0,
+        data.data.runPercentage,
+        data.data.starvedPercentage,
+        data.data.blockedPercentage,
+        data.data.setupPercentage,
+        data.data.ajustePercentage,
+        data.data.sanitPercentage,
+        data.data.fallaPercentage,
+        data.data.logisticaPercentage,
+        data.data.otrosPercentage,
         data.data.utilizationPercentage,
         data.data.capacityPerHour
-      ];
-      
-      productivitySheet.appendRow(row);
-      console.log('Successfully added productivity data row');
-      
-    } else if (data.type === 'capacity') {
-      const capacitySheet = sheet.getSheetByName('Capacity') || sheet.insertSheet('Capacity');
-      
-      // Agregar encabezados si la hoja está vacía
-      if (capacitySheet.getLastRow() === 0) {
-        capacitySheet.getRange(1, 1, 1, 10).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Resource Type', 'Resource Name', 'Product Name', 'Package Size', 'People Count', 'Pieces Produced', 'Defective Pieces', 'Pieces Per Minute'
-        ]]);
+      ]);
+    }
+    
+    else if (data.type === 'matanza-utilization') {
+      var matanzaUtilSheet = sheet.getSheetByName('MatanzaUtilization');
+      if (!matanzaUtilSheet) {
+        matanzaUtilSheet = sheet.insertSheet('MatanzaUtilization');
+        matanzaUtilSheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Etapa', 'Código Empleado', 'Output', 'CT Seg', 'SSOP Seg', 'Pérdidas Seg', 'CT%', 'SSOP%', 'Pérdidas%', 'Tiempo Total', 'CT/Unidad']);
       }
-      
-      // Verificar duplicados
-      if (isDuplicate(capacitySheet, data.data.id)) {
-        console.log('Duplicate capacity record detected, skipping:', data.data.id);
-        return ContentService
-          .createTextOutput(JSON.stringify({ 
-            success: true, 
-            message: 'Duplicate record skipped', 
-            timestamp: new Date().toISOString() 
-          }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // Agregar fila de datos
-      const row = [
+      matanzaUtilSheet.appendRow([
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
-        data.data.resourceType || '',
-        data.data.resourceName || '',
-        data.data.productName,
-        data.data.packageSize,
-        data.data.peopleCount,
-        data.data.piecesProduced,
-        data.data.defectivePieces || 0,
-        data.data.piecesPerMinute
-      ];
-      
-      capacitySheet.appendRow(row);
-      console.log('Successfully added capacity data row');
-      
-    } else if (data.type === 'test') {
-      console.log('Test request received:', data.data);
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: true, message: 'Test successful', timestamp: new Date().toISOString() }))
-        .setMimeType(ContentService.MimeType.JSON);
-    } else {
-      console.log('Unknown data type received:', data.type);
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: false, error: 'Unknown data type: ' + data.type }))
-        .setMimeType(ContentService.MimeType.JSON);
+        data.data.stage,
+        data.data.employeeCode,
+        data.data.output,
+        data.data.ctSeconds,
+        data.data.ssopSeconds,
+        data.data.perdidasSeconds,
+        data.data.ctPercentage,
+        data.data.ssopPercentage,
+        data.data.perdidasPercentage,
+        data.data.totalTime,
+        data.data.cycleTimePerUnit
+      ]);
     }
     
-    console.log('Data processing completed successfully');
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: true, message: 'Data saved successfully', timestamp: new Date().toISOString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-      
+    else if (data.type === 'matanza-productivity') {
+      var matanzaProdSheet = sheet.getSheetByName('MatanzaProductivity');
+      if (!matanzaProdSheet) {
+        matanzaProdSheet = sheet.insertSheet('MatanzaProductivity');
+        matanzaProdSheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Etapa', 'Código Empleado', 'Output', 'CT Seg', 'SSOP Seg', 'Pérdidas Seg', 'CT%', 'SSOP%', 'Pérdidas%', 'Tiempo Total', 'CT/Unidad']);
+      }
+      matanzaProdSheet.appendRow([
+        data.data.id,
+        data.data.inspector,
+        data.data.timestamp,
+        data.data.stage,
+        data.data.employeeCode,
+        data.data.output,
+        data.data.ctSeconds,
+        data.data.ssopSeconds,
+        data.data.perdidasSeconds,
+        data.data.ctPercentage,
+        data.data.ssopPercentage,
+        data.data.perdidasPercentage,
+        data.data.totalTime,
+        data.data.cycleTimePerUnit
+      ]);
+    }
+    
+    else if (data.type === 'test') {
+      Logger.log('Test recibido exitosamente');
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({success: true})).setMimeType(ContentService.MimeType.JSON);
+    
   } catch (error) {
-    console.error('Error in doPost:', error.toString());
-    console.error('Error stack:', error.stack);
-    return ContentService
-      .createTextOutput(JSON.stringify({ 
-        success: false, 
-        error: error.toString(),
-        stack: error.stack,
-        timestamp: new Date().toISOString()
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
+    Logger.log('Error: ' + error.toString());
+    return ContentService.createTextOutput(JSON.stringify({success: false, error: error.toString()})).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({status: 'ok', message: 'API funcionando'})).setMimeType(ContentService.MimeType.JSON);
 }
 ```
 
-4. **IMPORTANTE**: Reemplaza el ID de la hoja en la línea `SpreadsheetApp.openById('...')` con tu ID real
-5. El código incluye deduplicación automática basada en el ID único de cada registro
+## Paso 3: Guardar el proyecto
 
-### 3. Desplegar como Web App
-1. En Google Apps Script, haz clic en "Desplegar" > "Nueva implementación"
-2. Selecciona "Aplicación web" como tipo
-3. Configura:
-   - Ejecutar como: "Yo"
-   - Acceso: "Cualquier persona"
-4. Haz clic en "Desplegar"
-5. Copia la URL de la aplicación web
-6. **IMPORTANTE**: Si ya tienes una implementación anterior, debes crear una "Nueva implementación" para que los cambios surtan efecto
+1. Haz clic en el icono de guardar (💾) o presiona **Ctrl+S**
+2. Dale un nombre al proyecto, por ejemplo: "ProductionAPI"
 
-### 4. Actualizar la Configuración en la App
-1. Abre el archivo `services/google-sheets.ts`
-2. Actualiza `API_ENDPOINT` con la URL de tu Google Apps Script
-3. Actualiza `SHEET_ID` con el ID de tu Google Sheet
+## Paso 4: Implementar como Web App
 
-### 5. Solución de Problemas Comunes
+1. Haz clic en **Implementar** → **Nueva implementación**
+2. Haz clic en el icono de engranaje ⚙️ junto a "Seleccionar tipo"
+3. Selecciona **Aplicación web**
+4. Configura:
+   - **Descripción**: "API de Producción"
+   - **Ejecutar como**: "Yo" (tu cuenta)
+   - **Quién tiene acceso**: **Cualquier persona**
+5. Haz clic en **Implementar**
+6. Autoriza la aplicación cuando te lo pida (haz clic en "Avanzado" → "Ir a [nombre del proyecto]" si aparece advertencia)
+7. **COPIA LA URL** que aparece (empieza con `https://script.google.com/macros/s/...`)
 
-**Registros Duplicados:**
-- El nuevo script incluye deduplicación automática
-- Cada registro tiene un ID único que combina timestamp y un código aleatorio
-- Si un registro con el mismo ID ya existe, se omite automáticamente
+## Paso 5: Actualizar la URL en la App
 
-**Error "openById on object SpreadsheetApp":**
-- Verifica que el ID de la hoja sea correcto (solo el ID, no la URL completa)
-- Asegúrate de que el script tenga permisos para acceder a la hoja
+Si tu URL es diferente a la configurada, necesitas actualizar el archivo `services/google-sheets.ts`:
 
-**Error "HTML en lugar de JSON":**
-- Verifica que el script esté desplegado como "Web App"
-- Asegúrate de que el acceso esté configurado como "Cualquier persona"
-- Crea una nueva implementación si modificaste el código
+```typescript
+const GOOGLE_SHEETS_CONFIG = {
+  API_ENDPOINT: 'TU_NUEVA_URL_AQUÍ',
+};
+```
 
-**Timeout al guardar:**
-- El timeout se aumentó a 15 segundos
-- Los datos se guardan localmente si falla la sincronización
-- Se reintentarán automáticamente cuando haya conexión
+## Paso 6: Probar
 
-### 6. Probar la Integración
-1. Ejecuta la app
-2. Registra algunos datos de prueba
-3. Verifica que los datos aparezcan en tu Google Sheet sin duplicados
+1. Guarda un registro en la app
+2. Verifica en tu Google Sheet que se creó la hoja correspondiente y el dato
 
-## Mejoras Implementadas
+## Solución de Problemas
 
-### 1. IDs Únicos
-- Cada registro ahora tiene un ID único: `timestamp-randomcode`
-- Ejemplo: `1704067200000-a3b5c7d9e`
-- Esto previene colisiones incluso si dos registros se crean al mismo tiempo
+### Los datos no se guardan
+1. Verifica que la URL del script esté correcta
+2. Asegúrate de que el script esté desplegado con acceso "Cualquier persona"
+3. Revisa los logs en Apps Script: **Ver** → **Registros de ejecución**
 
-### 2. Deduplicación en Google Sheets
-- El script verifica si un ID ya existe antes de insertar
-- Si encuentra un duplicado, lo omite y devuelve éxito
-- Esto previene duplicados causados por reintentos de sincronización
+### Error de autorización
+1. Ve a **Implementar** → **Administrar implementaciones**
+2. Crea una nueva implementación
+3. Vuelve a autorizar con los permisos necesarios
 
-### 3. Mejor Manejo de Errores
-- Timeout aumentado a 15 segundos
-- Solo se agregan registros a la cola de sincronización si fallan
-- Los registros exitosos no se reintentan
-
-### 4. Sincronización Optimizada
-- Los registros se intentan guardar inmediatamente
-- Solo se agregan a la cola si falla el guardado inmediato
-- Esto reduce la posibilidad de duplicados
-
-## Estructura de Datos Actualizada
-
-### Hoja "Capacity"
-- ID, Inspector, Timestamp, Resource Type, Resource Name, Product Name, Package Size, People Count, Pieces Produced, Defective Pieces, Pieces Per Minute
-
-### Hoja "Rejection"
-- ID, Inspector, Timestamp, Line, Product Name, Package Size, Rejection Cause, Quantity
-
-### Hoja "Setup"
-- ID, Inspector, Timestamp, Resource Name, Event Type, Event Time (minutes), Description
-
-### Hoja "CycleTime"
-- ID, Inspector, Timestamp, Product Name, Packaging Machine, Cycle Time (seconds), Observations
-
-### Hoja "Productivity" (Estimación de Productividad)
-- ID, Inspector, Timestamp, Stage, Product Family, Output Unit, Output, RUN %, STARVED %, BLOCKED %, SETUP %, AJUSTE %, SANIT %, FALLA %, LOGISTICA %, OTROS %, Utilization %, Capacity per Hour
-
-## Notas Importantes
-- Los datos se guardan localmente en la app primero
-- Se intenta sincronizar inmediatamente con Google Sheets
-- Si falla, se agrega a una cola de sincronización automática
-- La deduplicación previene registros duplicados en Google Sheets
-- Los IDs únicos aseguran que cada registro sea identificable
+### Para ver los logs del script
+1. En Apps Script, ve a **Ver** → **Registros de ejecución**
+2. También puedes usar `Logger.log()` para depurar
