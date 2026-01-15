@@ -30,13 +30,6 @@ function RootLayoutNav() {
         }} 
       />
       <Stack.Screen 
-        name="wip-form" 
-        options={{ 
-          title: "Registro de WIP",
-          presentation: "card"
-        }} 
-      />
-      <Stack.Screen 
         name="setup-time-form" 
         options={{ 
           title: "Registro de Tiempo de Setup",
@@ -47,13 +40,6 @@ function RootLayoutNav() {
         name="capacity-form" 
         options={{ 
           title: "Registro de Capacidad",
-          presentation: "card"
-        }} 
-      />
-      <Stack.Screen 
-        name="utilization-form" 
-        options={{ 
-          title: "Registro de Utilización",
           presentation: "card"
         }} 
       />
@@ -82,6 +68,41 @@ function RootLayoutNav() {
         name="cycle-time-form" 
         options={{ 
           title: "Registro de Tiempo de Ciclo",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="matanza-module-selection" 
+        options={{ 
+          title: "Módulos de Matanza",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="matanza-utilization-config" 
+        options={{ 
+          title: "Configurar Estudio de Tiempos",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="matanza-utilization-timer" 
+        options={{ 
+          title: "Estudio de Tiempos",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="matanza-productivity-config" 
+        options={{ 
+          title: "Configurar Productividad",
+          presentation: "card"
+        }} 
+      />
+      <Stack.Screen 
+        name="matanza-productivity-timer" 
+        options={{ 
+          title: "Productividad Matanza",
           presentation: "card"
         }} 
       />

@@ -9,11 +9,7 @@ export interface ProductCatalog {
   category: string;
 }
 
-export type ProductionLine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'VS-95';
 export type RejectionLine = 'ULMA 1 (Central)' | 'ULMA 2 (Izquierda)' | 'Multivac R-105' | 'VS-95';
-export type ProductState = 'congelado' | 'refrigerado';
-export type ProductConfig = 'porcionado' | 'no_porcionado';
-export type PackagingType = 'termoformado' | 'empacado_vacio';
 
 export interface CapacityData {
   id: string;
