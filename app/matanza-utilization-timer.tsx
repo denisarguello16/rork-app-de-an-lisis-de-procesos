@@ -45,6 +45,45 @@ export default function MatanzaUtilizationTimerScreen() {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  useEffect(() => {
+    if (isRunning) {
+      intervalRef.current = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning]);
+
+  const categorySeconds = useMemo((): Record<MatanzaTimeCategory, number> => {
+    const seconds: Record<MatanzaTimeCategory, number> = {
+      CT: 0,
+      SSOP: 0,
+      PERDIDAS: 0,
+    };
+
+    events.forEach((event) => {
+      const duration = (event.endTime ?? elapsedTime) - event.startTime;
+      seconds[event.category] += duration;
+    });
+
+    if (currentCategory) {
+      const duration = elapsedTime - categoryStartTime;
+      seconds[currentCategory] += duration;
+    }
+
+    return seconds;
+  }, [events, currentCategory, categoryStartTime, elapsedTime]);
+
   const handleFinish = useCallback(async () => {
     console.log('🔵 handleFinish called');
     console.log('🔵 elapsedTime:', elapsedTime);
@@ -151,25 +190,6 @@ export default function MatanzaUtilizationTimerScreen() {
     }
   }, [events, currentCategory, categoryStartTime, output, params, inspector, addMatanzaWindow5minRecord, elapsedTime]);
 
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning]);
-
   const handlePlayPause = () => {
     if (!isRunning && !currentCategory) {
       Alert.alert('Atención', 'Seleccione una categoría antes de iniciar el cronómetro');
@@ -212,30 +232,6 @@ export default function MatanzaUtilizationTimerScreen() {
     setCurrentCategory(newCategory);
     setCategoryStartTime(elapsedTime);
   };
-
-
-
-  const categorySeconds = useMemo((): Record<MatanzaTimeCategory, number> => {
-    const seconds: Record<MatanzaTimeCategory, number> = {
-      CT: 0,
-      SSOP: 0,
-      PERDIDAS: 0,
-    };
-
-    events.forEach((event) => {
-      const duration = (event.endTime ?? elapsedTime) - event.startTime;
-      seconds[event.category] += duration;
-    });
-
-    if (currentCategory) {
-      const duration = elapsedTime - categoryStartTime;
-      seconds[currentCategory] += duration;
-    }
-
-    return seconds;
-  }, [events, currentCategory, categoryStartTime, elapsedTime]);
-
-
 
   const hours = Math.floor(elapsedTime / 3600);
   const minutes = Math.floor((elapsedTime % 3600) / 60);

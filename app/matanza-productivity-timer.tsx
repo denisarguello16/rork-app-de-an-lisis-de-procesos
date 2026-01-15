@@ -43,6 +43,56 @@ export default function MatanzaProductivityTimerScreen() {
 
   const employeeName = params.employeeCode ? EMPLOYEE_CATALOG[params.employeeCode] : 'Desconocido';
 
+  useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning, timeLeft]);
+
+  const stateSeconds = useMemo((): Record<MatanzaState, number> => {
+    const seconds: Record<MatanzaState, number> = {
+      CT: 0,
+      SSOP: 0,
+      PERDIDAS: 0,
+    };
+
+    events.forEach((event) => {
+      const duration = (event.endTime ?? 300) - event.startTime;
+      seconds[event.state] += duration;
+    });
+
+    if (currentState) {
+      const currentTime = 300 - timeLeft;
+      const duration = currentTime - stateStartTime;
+      seconds[currentState] += duration;
+    }
+
+    return seconds;
+  }, [events, currentState, stateStartTime, timeLeft]);
+
+  const totalRecordedSeconds = useMemo(
+    () => Object.values(stateSeconds).reduce((sum, val) => sum + val, 0),
+    [stateSeconds]
+  );
+
   const handleFinish = useCallback(async () => {
     console.log('🔵 handleFinish called - Matanza Productivity');
     console.log('🔵 timeLeft:', timeLeft);
@@ -148,30 +198,6 @@ export default function MatanzaProductivityTimerScreen() {
     }
   }, [events, currentState, stateStartTime, output, params, inspector, addMatanzaProductivityRecord, timeLeft]);
 
-  useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning, timeLeft]);
-
   const handlePlayPause = () => {
     if (!isRunning && !currentState) {
       Alert.alert('Atención', 'Seleccione un estado antes de iniciar el cronómetro');
@@ -221,32 +247,6 @@ export default function MatanzaProductivityTimerScreen() {
   const handleOutputChange = (delta: number) => {
     setOutput((prev) => Math.max(0, prev + delta));
   };
-
-  const stateSeconds = useMemo((): Record<MatanzaState, number> => {
-    const seconds: Record<MatanzaState, number> = {
-      CT: 0,
-      SSOP: 0,
-      PERDIDAS: 0,
-    };
-
-    events.forEach((event) => {
-      const duration = (event.endTime ?? 300) - event.startTime;
-      seconds[event.state] += duration;
-    });
-
-    if (currentState) {
-      const currentTime = 300 - timeLeft;
-      const duration = currentTime - stateStartTime;
-      seconds[currentState] += duration;
-    }
-
-    return seconds;
-  }, [events, currentState, stateStartTime, timeLeft]);
-
-  const totalRecordedSeconds = useMemo(
-    () => Object.values(stateSeconds).reduce((sum, val) => sum + val, 0),
-    [stateSeconds]
-  );
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

@@ -48,6 +48,62 @@ export default function Utilization5minTimerScreen() {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning, timeLeft]);
+
+  const stateSeconds = useMemo((): Record<WindowState, number> => {
+    const seconds: Record<WindowState, number> = {
+      RUN: 0,
+      STARVED: 0,
+      BLOCKED: 0,
+      SETUP: 0,
+      AJUSTE: 0,
+      SANIT: 0,
+      FALLA: 0,
+      LOGÍSTICA: 0,
+      OTROS: 0,
+    };
+
+    events.forEach((event) => {
+      const duration = (event.endTime ?? 300) - event.startTime;
+      seconds[event.state] += duration;
+    });
+
+    if (currentState) {
+      const currentTime = 300 - timeLeft;
+      const duration = currentTime - stateStartTime;
+      seconds[currentState] += duration;
+    }
+
+    return seconds;
+  }, [events, currentState, stateStartTime, timeLeft]);
+
+  const totalRecordedSeconds = useMemo(
+    () => Object.values(stateSeconds).reduce((sum, val) => sum + val, 0),
+    [stateSeconds]
+  );
+
   const handleFinish = useCallback(async () => {
     console.log('🔵 handleFinish called');
     console.log('🔵 timeLeft:', timeLeft);
@@ -156,32 +212,6 @@ export default function Utilization5minTimerScreen() {
     }
   }, [events, currentState, stateStartTime, output, params, inspector, addWindow5minRecord, timeLeft]);
 
-  useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning, timeLeft]);
-
-
-
   const handlePlayPause = () => {
     if (!isRunning && !currentState) {
       Alert.alert('Atención', 'Seleccione un estado antes de iniciar el cronómetro');
@@ -231,38 +261,6 @@ export default function Utilization5minTimerScreen() {
   const handleOutputChange = (delta: number) => {
     setOutput((prev) => Math.max(0, prev + delta));
   };
-
-  const stateSeconds = useMemo((): Record<WindowState, number> => {
-    const seconds: Record<WindowState, number> = {
-      RUN: 0,
-      STARVED: 0,
-      BLOCKED: 0,
-      SETUP: 0,
-      AJUSTE: 0,
-      SANIT: 0,
-      FALLA: 0,
-      LOGÍSTICA: 0,
-      OTROS: 0,
-    };
-
-    events.forEach((event) => {
-      const duration = (event.endTime ?? 300) - event.startTime;
-      seconds[event.state] += duration;
-    });
-
-    if (currentState) {
-      const currentTime = 300 - timeLeft;
-      const duration = currentTime - stateStartTime;
-      seconds[currentState] += duration;
-    }
-
-    return seconds;
-  }, [events, currentState, stateStartTime, timeLeft]);
-
-  const totalRecordedSeconds = useMemo(
-    () => Object.values(stateSeconds).reduce((sum, val) => sum + val, 0),
-    [stateSeconds]
-  );
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
