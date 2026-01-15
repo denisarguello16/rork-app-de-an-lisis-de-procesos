@@ -918,39 +918,7 @@ export const saveCycleTimeDataToSheets = async (data: CycleTimeData): Promise<Go
   }
 };
 
-// Function to save data with fallback to local storage
-export const saveDataWithFallback = async (data: CapacityData | RejectionData | SetupTimeData | CycleTimeData | Window5minData, type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity'): Promise<GoogleSheetsResponse> => {
-  try {
-    // Try to save to Google Sheets first
-    const result = type === 'capacity' 
-      ? await saveCapacityDataToSheets(data as CapacityData)
-      : type === 'rejection'
-      ? await saveRejectionDataToSheets(data as RejectionData)
-      : type === 'setup'
-      ? await saveSetupTimeDataToSheets(data as SetupTimeData)
-      : type === 'cycle-time'
-      ? await saveCycleTimeDataToSheets(data as CycleTimeData)
-      : await saveWindow5minDataToSheets(data as Window5minData);
-    
-    if (result.success) {
-      return result;
-    } else {
-      // If Google Sheets fails, save locally
-      console.log('Google Sheets failed, saving locally as backup');
-      // Note: Local storage implementation would go here
-      return {
-        success: true,
-        message: 'Data saved locally (Google Sheets unavailable)'
-      };
-    }
-  } catch (error) {
-    console.error('Error in saveDataWithFallback:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-  }
-};
+
 
 // Function to save capacity data to Google Sheets
 export const saveCapacityDataToSheets = async (data: CapacityData): Promise<GoogleSheetsResponse> => {
@@ -972,6 +940,9 @@ export const saveCapacityDataToSheets = async (data: CapacityData): Promise<Goog
         resourceType: data.resourceType,
         resourceName: data.resourceName,
         productName: data.productName,
+        productCode: data.productCode || '',
+        line: data.line || '',
+        stage: data.stage || '',
         packageSize: data.packageSize,
         peopleCount: data.peopleCount,
         piecesProduced: data.piecesProduced,
@@ -1092,30 +1063,25 @@ function doPost(e) {
     if (data.type === 'capacity') {
       const capacitySheet = sheet.getSheetByName('Capacity') || sheet.insertSheet('Capacity');
       
-      // Add headers if sheet is empty
       if (capacitySheet.getLastRow() === 0) {
-        capacitySheet.getRange(1, 1, 1, 17).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Line', 'Product State', 'Product Config',
-          'Packaging Type', 'Has Individual Weight Label', 'Product Code', 'Product Name', 'Packaging',
-          'Package Size', 'Stage', 'People Count', 'Pieces Produced', 'Defective Pieces', 'Pieces Per Minute'
+        capacitySheet.getRange(1, 1, 1, 13).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Resource Type', 'Resource Name', 'Product Name',
+          'Product Code', 'Line', 'Stage', 'Package Size', 'People Count', 'Pieces Produced',
+          'Defective Pieces', 'Pieces Per Minute'
         ]]);
       }
       
-      // Add data row
       const row = [
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
-        data.data.line,
-        data.data.productState,
-        data.data.productConfig,
-        data.data.packagingType,
-        data.data.hasIndividualWeightLabel,
-        data.data.productCode,
+        data.data.resourceType,
+        data.data.resourceName,
         data.data.productName,
-        data.data.packaging,
+        data.data.productCode || '',
+        data.data.line || '',
+        data.data.stage || '',
         data.data.packageSize,
-        data.data.stage,
         data.data.peopleCount,
         data.data.piecesProduced,
         data.data.defectivePieces,
@@ -1125,43 +1091,7 @@ function doPost(e) {
       capacitySheet.appendRow(row);
       console.log('Successfully added capacity data row');
       
-    } else if (data.type === 'utilization') {
-      const utilizationSheet = sheet.getSheetByName('Utilization') || sheet.insertSheet('Utilization');
-      
-      // Add headers if sheet is empty
-      if (utilizationSheet.getLastRow() === 0) {
-        utilizationSheet.getRange(1, 1, 1, 17).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Line', 'Product State', 'Product Config',
-          'Packaging Type', 'Has Individual Weight Label', 'Product Code', 'Product Name',
-          'Packaging', 'Stage', 'Monitoring Interval', 'Available Time', 'Productive Time',
-          'Utilization Percentage', 'Observations'
-        ]]);
-      }
-      
-      // Add data row
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.line,
-        data.data.productState,
-        data.data.productConfig,
-        data.data.packagingType,
-        data.data.hasIndividualWeightLabel,
-        data.data.productCode,
-        data.data.productName,
-        data.data.packaging,
-        data.data.stage || '',
-        data.data.monitoringInterval,
-        data.data.availableTime,
-        data.data.productiveTime,
-        data.data.utilizationPercentage,
-        data.data.observations
-      ];
-      
-      utilizationSheet.appendRow(row);
-      console.log('Successfully added utilization data row');
-      
+
     } else if (data.type === 'rejection') {
       const rejectionSheet = sheet.getSheetByName('Rejection') || sheet.insertSheet('Rejection');
       
@@ -1187,60 +1117,23 @@ function doPost(e) {
       rejectionSheet.appendRow(row);
       console.log('Successfully added rejection data row');
       
-    } else if (data.type === 'wip') {
-      const wipSheet = sheet.getSheetByName('WIP') || sheet.insertSheet('WIP');
-      
-      // Add headers if sheet is empty
-      if (wipSheet.getLastRow() === 0) {
-        wipSheet.getRange(1, 1, 1, 16).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Line', 'Product State', 'Product Config',
-          'Packaging Type', 'Has Individual Weight Label', 'Product Code', 'Product Name',
-          'Packaging', 'Queue Before Portioning', 'Queue Before Packaging', 'Queue Before Individual Labeling',
-          'Queue Before Box Closure', 'Queue Before Box Strapping'
-        ]]);
-      }
-      
-      // Add data row
-      const row = [
-        data.data.id,
-        data.data.inspector,
-        data.data.timestamp,
-        data.data.line,
-        data.data.productState,
-        data.data.productConfig,
-        data.data.packagingType,
-        data.data.hasIndividualWeightLabel,
-        data.data.productCode,
-        data.data.productName,
-        data.data.packaging,
-        data.data.queueBeforePortioning,
-        data.data.queueBeforePackaging,
-        data.data.queueBeforeIndividualLabeling,
-        data.data.queueBeforeBoxClosure,
-        data.data.queueBeforeBoxStrapping
-      ];
-      
-      wipSheet.appendRow(row);
-      console.log('Successfully added WIP data row');
-      
+
     } else if (data.type === 'setup') {
       const setupSheet = sheet.getSheetByName('Setup') || sheet.insertSheet('Setup');
       
-      // Add headers if sheet is empty
       if (setupSheet.getLastRow() === 0) {
         setupSheet.getRange(1, 1, 1, 7).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Line', 'Setup Type', 'Setup Time (minutes)', 'Description'
+          'ID', 'Inspector', 'Timestamp', 'Resource Name', 'Event Type', 'Event Time (minutes)', 'Description'
         ]]);
       }
       
-      // Add data row
       const row = [
         data.data.id,
         data.data.inspector,
         data.data.timestamp,
-        data.data.line,
-        data.data.setupType,
-        data.data.setupTime,
+        data.data.resourceName,
+        data.data.eventType,
+        data.data.eventTime,
         data.data.description || ''
       ];
       
@@ -1313,7 +1206,7 @@ function doPost(e) {
       
       // Add headers if sheet is empty
       if (matanzaUtilizationSheet.getLastRow() === 0) {
-        matanzaUtilizationSheet.getRange(1, 1, 1, 12).setValues([[
+        matanzaUtilizationSheet.getRange(1, 1, 1, 14).setValues([[
           'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Code', 'Output',
           'CT Seconds', 'SSOP Seconds', 'Perdidas Seconds', 'CT %', 'SSOP %', 'Perdidas %', 'Total Time', 'CT per Unit'
         ]]);
@@ -1345,8 +1238,8 @@ function doPost(e) {
       
       // Add headers if sheet is empty
       if (matanzaProductivitySheet.getLastRow() === 0) {
-        matanzaProductivitySheet.getRange(1, 1, 1, 18).setValues([[
-          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Info', 'Output Unit', 'Output',
+        matanzaProductivitySheet.getRange(1, 1, 1, 17).setValues([[
+          'ID', 'Inspector', 'Timestamp', 'Stage', 'Employee Code', 'Output Unit', 'Output',
           'RUN %', 'STARVED %', 'BLOCKED %', 'SETUP %', 'AJUSTE %', 'SANIT %', 'FALLA %', 'LOGISTICA %', 'OTROS %',
           'Utilization %', 'Capacity per Hour'
         ]]);
