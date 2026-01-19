@@ -103,6 +103,16 @@ export default function MatanzaProductivityConfigScreen() {
               { key: 'Intervención antibacteriana con agua caliente', label: 'Intervención antibacteriana con agua caliente' },
               { key: 'Numeración de canales', label: 'Numeración de canales' },
               { key: 'Intervención antibacteriana', label: 'Intervención antibacteriana' },
+              { key: 'Sierra 1', label: 'Sierra 1' },
+              { key: 'Sierra 2', label: 'Sierra 2' },
+              { key: 'Sierra 3', label: 'Sierra 3' },
+              { key: 'ULMA 2', label: 'ULMA 2' },
+              { key: 'Multivac R-105', label: 'Multivac R-105' },
+              { key: 'VS-95', label: 'VS-95' },
+              { key: 'Indicador 80', label: 'Indicador 80' },
+              { key: 'Indicador 70', label: 'Indicador 70' },
+              { key: 'Indicador 40', label: 'Indicador 40' },
+              { key: 'Indicador 30', label: 'Indicador 30' },
             ]}
           />
 
