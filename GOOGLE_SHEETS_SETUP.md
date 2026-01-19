@@ -151,7 +151,7 @@ function doPost(e) {
       var matanzaProdSheet = sheet.getSheetByName('MatanzaProductivity');
       if (!matanzaProdSheet) {
         matanzaProdSheet = sheet.insertSheet('MatanzaProductivity');
-        matanzaProdSheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Etapa', 'Código Empleado', 'Output', 'CT Seg', 'SSOP Seg', 'Pérdidas Seg', 'CT%', 'SSOP%', 'Pérdidas%', 'Tiempo Total', 'CT/Unidad']);
+        matanzaProdSheet.appendRow(['ID', 'Inspector', 'Timestamp', 'Etapa', 'Código Empleado', 'Output', 'RUN Seg', 'STARVED Seg', 'BLOCKED Seg', 'SETUP Seg', 'AJUSTE Seg', 'SANIT Seg', 'FALLA Seg', 'LOGISTICA Seg', 'OTROS Seg', 'RUN%', 'STARVED%', 'BLOCKED%', 'SETUP%', 'AJUSTE%', 'SANIT%', 'FALLA%', 'LOGISTICA%', 'OTROS%', 'Tiempo Total', 'CT/Unidad']);
       }
       matanzaProdSheet.appendRow([
         data.data.id,
@@ -160,12 +160,24 @@ function doPost(e) {
         data.data.stage,
         data.data.employeeCode,
         data.data.output,
-        data.data.ctSeconds,
-        data.data.ssopSeconds,
-        data.data.perdidasSeconds,
-        data.data.ctPercentage,
-        data.data.ssopPercentage,
-        data.data.perdidasPercentage,
+        data.data.runSeconds,
+        data.data.starvedSeconds,
+        data.data.blockedSeconds,
+        data.data.setupSeconds,
+        data.data.ajusteSeconds,
+        data.data.sanitSeconds,
+        data.data.fallaSeconds,
+        data.data.logisticaSeconds,
+        data.data.otrosSeconds,
+        data.data.runPercentage,
+        data.data.starvedPercentage,
+        data.data.blockedPercentage,
+        data.data.setupPercentage,
+        data.data.ajustePercentage,
+        data.data.sanitPercentage,
+        data.data.fallaPercentage,
+        data.data.logisticaPercentage,
+        data.data.otrosPercentage,
         data.data.totalTime,
         data.data.cycleTimePerUnit
       ]);
