@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
-import { ProductionStore, Inspector, CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData } from '@/types/production';
+import { ProductionStore, Inspector, CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData, MatanzaProductivityData } from '@/types/production';
 import { saveCapacityDataToSheets, saveRejectionDataToSheets, saveSetupTimeDataToSheets, saveCycleTimeDataToSheets, saveWindow5minDataToSheets, saveMatanzaUtilizationDataToSheets, saveMatanzaProductivityDataToSheets } from '@/services/google-sheets';
 import { syncService } from '@/services/sync-service';
 import { getNicaraguaTime } from '@/constants/timezone';
@@ -16,6 +16,7 @@ const initialState: ProductionStore = {
   cycleTimeRecords: [],
   window5minRecords: [],
   matanzaWindow5minRecords: [],
+  matanzaProductivityRecords: [],
 };
 
 export const [ProductionProvider, useProductionStore] = createContextHook(() => {
@@ -28,6 +29,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const [cycleTimeRecords, setCycleTimeRecords] = useState<CycleTimeData[]>(initialState.cycleTimeRecords);
   const [window5minRecords, setWindow5minRecords] = useState<Window5minData[]>(initialState.window5minRecords);
   const [matanzaWindow5minRecords, setMatanzaWindow5minRecords] = useState<MatanzaWindow5minData[]>(initialState.matanzaWindow5minRecords);
+  const [matanzaProductivityRecords, setMatanzaProductivityRecords] = useState<MatanzaProductivityData[]>(initialState.matanzaProductivityRecords);
 
   // Get storage implementation based on platform
   const getStorage = useCallback(() => {
@@ -195,13 +197,13 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     return { success: true, message: 'Datos guardados localmente. Se sincronizarán automáticamente cuando haya conexión.' };
   }, []);
 
-  const addMatanzaProductivityRecord = useCallback(async (record: Omit<MatanzaWindow5minData, 'id'>) => {
-    const newRecord: MatanzaWindow5minData = {
+  const addMatanzaProductivityRecord = useCallback(async (record: Omit<MatanzaProductivityData, 'id'>) => {
+    const newRecord: MatanzaProductivityData = {
       ...record,
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     
-    setMatanzaWindow5minRecords(prev => [...prev, newRecord]);
+    setMatanzaProductivityRecords(prev => [...prev, newRecord]);
     
     try {
       const result = await saveMatanzaProductivityDataToSheets(newRecord);
@@ -284,6 +286,12 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
           timestamp: new Date(record.timestamp),
         })));
       }
+      if (Array.isArray(data.matanzaProductivityRecords)) {
+        setMatanzaProductivityRecords(data.matanzaProductivityRecords.map((record: any) => ({
+          ...record,
+          timestamp: new Date(record.timestamp),
+        })));
+      }
     } catch (error) {
       console.error('❌ Error loading from storage:', error);
       try {
@@ -310,12 +318,13 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       cycleTimeRecords,
       window5minRecords,
       matanzaWindow5minRecords,
+      matanzaProductivityRecords,
       lastSaved: getNicaraguaTime().toISOString(),
     };
     storage.setItem('production-data', JSON.stringify(dataToSave)).catch(error => {
       console.error('❌ Error saving to storage:', error);
     });
-  }, [inspector, capacityRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, matanzaWindow5minRecords, getStorage]);
+  }, [inspector, capacityRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, matanzaWindow5minRecords, matanzaProductivityRecords, getStorage]);
 
   return useMemo(() => ({
     inspector,
@@ -326,6 +335,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     cycleTimeRecords,
     window5minRecords,
     matanzaWindow5minRecords,
+    matanzaProductivityRecords,
     setInspector,
     setSelectedModule,
     addCapacityRecord,
@@ -345,6 +355,7 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
     cycleTimeRecords,
     window5minRecords,
     matanzaWindow5minRecords,
+    matanzaProductivityRecords,
     setInspector,
     setSelectedModule,
     addCapacityRecord,

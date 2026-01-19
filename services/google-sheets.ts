@@ -1,4 +1,4 @@
-import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData } from '@/types/production';
+import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData, MatanzaProductivityData } from '@/types/production';
 import { formatForGoogleSheets } from '@/constants/timezone';
 
 const GOOGLE_SHEETS_CONFIG = {
@@ -192,7 +192,7 @@ export const saveMatanzaUtilizationDataToSheets = async (data: MatanzaWindow5min
   });
 };
 
-export const saveMatanzaProductivityDataToSheets = async (data: MatanzaWindow5minData): Promise<GoogleSheetsResponse> => {
+export const saveMatanzaProductivityDataToSheets = async (data: MatanzaProductivityData): Promise<GoogleSheetsResponse> => {
   if (!isGoogleSheetsConfigured()) {
     return { success: false, error: 'Google Sheets no configurado' };
   }
@@ -206,12 +206,24 @@ export const saveMatanzaProductivityDataToSheets = async (data: MatanzaWindow5mi
       stage: data.stage,
       employeeCode: data.employeeCode,
       output: data.output,
-      ctSeconds: data.ctSeconds,
-      ssopSeconds: data.ssopSeconds,
-      perdidasSeconds: data.perdidasSeconds,
-      ctPercentage: data.ctPercentage,
-      ssopPercentage: data.ssopPercentage,
-      perdidasPercentage: data.perdidasPercentage,
+      runSeconds: data.runSeconds,
+      starvedSeconds: data.starvedSeconds,
+      blockedSeconds: data.blockedSeconds,
+      setupSeconds: data.setupSeconds,
+      ajusteSeconds: data.ajusteSeconds,
+      sanitSeconds: data.sanitSeconds,
+      fallaSeconds: data.fallaSeconds,
+      logisticaSeconds: data.logisticaSeconds,
+      otrosSeconds: data.otrosSeconds,
+      runPercentage: data.runPercentage,
+      starvedPercentage: data.starvedPercentage,
+      blockedPercentage: data.blockedPercentage,
+      setupPercentage: data.setupPercentage,
+      ajustePercentage: data.ajustePercentage,
+      sanitPercentage: data.sanitPercentage,
+      fallaPercentage: data.fallaPercentage,
+      logisticaPercentage: data.logisticaPercentage,
+      otrosPercentage: data.otrosPercentage,
       totalTime: data.totalTime,
       cycleTimePerUnit: data.cycleTimePerUnit
     }

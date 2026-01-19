@@ -145,6 +145,42 @@ export interface MatanzaWindow5minData {
   cycleTimePerUnit: number;
 }
 
+export interface MatanzaProductivityStateEvent {
+  state: WindowState;
+  startTime: number;
+  endTime?: number;
+}
+
+export interface MatanzaProductivityData {
+  id: string;
+  inspector: string;
+  timestamp: Date;
+  stage: string;
+  employeeCode: string;
+  output: number;
+  events: MatanzaProductivityStateEvent[];
+  runSeconds: number;
+  starvedSeconds: number;
+  blockedSeconds: number;
+  setupSeconds: number;
+  ajusteSeconds: number;
+  sanitSeconds: number;
+  fallaSeconds: number;
+  logisticaSeconds: number;
+  otrosSeconds: number;
+  runPercentage: number;
+  starvedPercentage: number;
+  blockedPercentage: number;
+  setupPercentage: number;
+  ajustePercentage: number;
+  sanitPercentage: number;
+  fallaPercentage: number;
+  logisticaPercentage: number;
+  otrosPercentage: number;
+  totalTime: number;
+  cycleTimePerUnit: number;
+}
+
 export interface ProductionStore {
   inspector: Inspector | null;
   selectedModule: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'utilization-5min' | null;
@@ -154,4 +190,5 @@ export interface ProductionStore {
   cycleTimeRecords: CycleTimeData[];
   window5minRecords: Window5minData[];
   matanzaWindow5minRecords: MatanzaWindow5minData[];
+  matanzaProductivityRecords: MatanzaProductivityData[];
 }

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData } from '@/types/production';
+import { CapacityData, RejectionData, SetupTimeData, CycleTimeData, Window5minData, MatanzaWindow5minData, MatanzaProductivityData } from '@/types/production';
 import { 
   saveCapacityDataToSheets, 
   saveRejectionDataToSheets, 
@@ -15,7 +15,7 @@ import { getNicaraguaTime } from '@/constants/timezone';
 interface PendingSyncItem {
   id: string;
   type: 'capacity' | 'rejection' | 'setup' | 'cycle-time' | 'productivity' | 'matanza-utilization' | 'matanza-productivity';
-  data: CapacityData | RejectionData | SetupTimeData | CycleTimeData | Window5minData | MatanzaWindow5minData;
+  data: CapacityData | RejectionData | SetupTimeData | CycleTimeData | Window5minData | MatanzaWindow5minData | MatanzaProductivityData;
   timestamp: string;
   attempts: number;
 }
@@ -201,7 +201,7 @@ class SyncService {
           result = await saveMatanzaUtilizationDataToSheets(item.data as MatanzaWindow5minData);
           break;
         case 'matanza-productivity':
-          result = await saveMatanzaProductivityDataToSheets(item.data as MatanzaWindow5minData);
+          result = await saveMatanzaProductivityDataToSheets(item.data as MatanzaProductivityData);
           break;
         default:
           return false;

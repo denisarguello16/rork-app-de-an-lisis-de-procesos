@@ -6,25 +6,33 @@ import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Colors } from '@/constants/colors';
-
+import { WindowState } from '@/types/production';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getNicaraguaTime } from '@/constants/timezone';
 import { EMPLOYEE_CATALOG } from '@/constants/employees';
 
-type MatanzaState = 'CT' | 'SSOP' | 'PERDIDAS';
+const MATANZA_STATES: WindowState[] = [
+  'RUN',
+  'STARVED',
+  'BLOCKED',
+  'SETUP',
+  'AJUSTE',
+  'SANIT',
+  'FALLA',
+  'LOGÍSTICA',
+  'OTROS',
+];
 
-const MATANZA_STATES: MatanzaState[] = ['CT', 'SSOP', 'PERDIDAS'];
-
-const STATE_COLORS: Record<MatanzaState, string> = {
-  CT: '#10b981',
-  SSOP: '#3b82f6',
-  PERDIDAS: '#ef4444',
-};
-
-const STATE_LABELS: Record<MatanzaState, string> = {
-  CT: 'Cycle Time',
-  SSOP: 'SSOP',
-  PERDIDAS: 'Pérdidas',
+const STATE_COLORS: Record<WindowState, string> = {
+  RUN: '#10b981',
+  STARVED: '#f59e0b',
+  BLOCKED: '#64748b',
+  SETUP: '#8b5cf6',
+  AJUSTE: '#06b6d4',
+  SANIT: '#06b6d4',
+  FALLA: '#ef4444',
+  LOGÍSTICA: '#8b5cf6',
+  OTROS: '#64748b',
 };
 
 export default function MatanzaProductivityTimerScreen() {
@@ -35,8 +43,8 @@ export default function MatanzaProductivityTimerScreen() {
   const [timeLeft, setTimeLeft] = useState<number>(300);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [output, setOutput] = useState<number>(0);
-  const [events, setEvents] = useState<{ state: MatanzaState; startTime: number; endTime?: number }[]>([]);
-  const [currentState, setCurrentState] = useState<MatanzaState | null>(null);
+  const [events, setEvents] = useState<{ state: WindowState; startTime: number; endTime?: number }[]>([]);
+  const [currentState, setCurrentState] = useState<WindowState | null>(null);
   const [stateStartTime, setStateStartTime] = useState<number>(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -67,11 +75,17 @@ export default function MatanzaProductivityTimerScreen() {
     };
   }, [isRunning, timeLeft]);
 
-  const stateSeconds = useMemo((): Record<MatanzaState, number> => {
-    const seconds: Record<MatanzaState, number> = {
-      CT: 0,
-      SSOP: 0,
-      PERDIDAS: 0,
+  const stateSeconds = useMemo((): Record<WindowState, number> => {
+    const seconds: Record<WindowState, number> = {
+      RUN: 0,
+      STARVED: 0,
+      BLOCKED: 0,
+      SETUP: 0,
+      AJUSTE: 0,
+      SANIT: 0,
+      FALLA: 0,
+      LOGÍSTICA: 0,
+      OTROS: 0,
     };
 
     events.forEach((event) => {
@@ -131,10 +145,16 @@ export default function MatanzaProductivityTimerScreen() {
 
     console.log('🔵 finalEvents:', finalEvents);
 
-    const stateSecondsMap: Record<MatanzaState, number> = {
-      CT: 0,
-      SSOP: 0,
-      PERDIDAS: 0,
+    const stateSecondsMap: Record<WindowState, number> = {
+      RUN: 0,
+      STARVED: 0,
+      BLOCKED: 0,
+      SETUP: 0,
+      AJUSTE: 0,
+      SANIT: 0,
+      FALLA: 0,
+      LOGÍSTICA: 0,
+      OTROS: 0,
     };
 
     finalEvents.forEach((event) => {
@@ -144,20 +164,9 @@ export default function MatanzaProductivityTimerScreen() {
 
     console.log('🔵 stateSecondsMap:', stateSecondsMap);
 
-    const ctSeconds = stateSecondsMap['CT'];
-    const ssopSeconds = stateSecondsMap['SSOP'];
-    const perdidasSeconds = stateSecondsMap['PERDIDAS'];
-    const totalTime = ctSeconds + ssopSeconds + perdidasSeconds;
-
-    const ctPercentage = totalTime > 0 ? (ctSeconds / totalTime) * 100 : 0;
-    const ssopPercentage = totalTime > 0 ? (ssopSeconds / totalTime) * 100 : 0;
-    const perdidasPercentage = totalTime > 0 ? (perdidasSeconds / totalTime) * 100 : 0;
-    const cycleTimePerUnit = output > 0 ? ctSeconds / output : 0;
-
-    console.log('🔵 ctPercentage:', ctPercentage);
-    console.log('🔵 ssopPercentage:', ssopPercentage);
-    console.log('🔵 perdidasPercentage:', perdidasPercentage);
-    console.log('🔵 cycleTimePerUnit:', cycleTimePerUnit);
+    const totalTime = Object.values(stateSecondsMap).reduce((sum, val) => sum + val, 0);
+    const runSeconds = stateSecondsMap['RUN'];
+    const cycleTimePerUnit = output > 0 ? runSeconds / output : 0;
 
     const recordData = {
       inspector: inspector.name,
@@ -165,12 +174,24 @@ export default function MatanzaProductivityTimerScreen() {
       stage: params.stage || '',
       employeeCode: params.employeeCode || '',
       output,
-      ctSeconds,
-      ssopSeconds,
-      perdidasSeconds,
-      ctPercentage,
-      ssopPercentage,
-      perdidasPercentage,
+      runSeconds: stateSecondsMap['RUN'],
+      starvedSeconds: stateSecondsMap['STARVED'],
+      blockedSeconds: stateSecondsMap['BLOCKED'],
+      setupSeconds: stateSecondsMap['SETUP'],
+      ajusteSeconds: stateSecondsMap['AJUSTE'],
+      sanitSeconds: stateSecondsMap['SANIT'],
+      fallaSeconds: stateSecondsMap['FALLA'],
+      logisticaSeconds: stateSecondsMap['LOGÍSTICA'],
+      otrosSeconds: stateSecondsMap['OTROS'],
+      runPercentage: totalTime > 0 ? (stateSecondsMap['RUN'] / totalTime) * 100 : 0,
+      starvedPercentage: totalTime > 0 ? (stateSecondsMap['STARVED'] / totalTime) * 100 : 0,
+      blockedPercentage: totalTime > 0 ? (stateSecondsMap['BLOCKED'] / totalTime) * 100 : 0,
+      setupPercentage: totalTime > 0 ? (stateSecondsMap['SETUP'] / totalTime) * 100 : 0,
+      ajustePercentage: totalTime > 0 ? (stateSecondsMap['AJUSTE'] / totalTime) * 100 : 0,
+      sanitPercentage: totalTime > 0 ? (stateSecondsMap['SANIT'] / totalTime) * 100 : 0,
+      fallaPercentage: totalTime > 0 ? (stateSecondsMap['FALLA'] / totalTime) * 100 : 0,
+      logisticaPercentage: totalTime > 0 ? (stateSecondsMap['LOGÍSTICA'] / totalTime) * 100 : 0,
+      otrosPercentage: totalTime > 0 ? (stateSecondsMap['OTROS'] / totalTime) * 100 : 0,
       totalTime,
       cycleTimePerUnit,
       events: [],
@@ -183,9 +204,11 @@ export default function MatanzaProductivityTimerScreen() {
       const result = await addMatanzaProductivityRecord(recordData);
       console.log('🔵 addMatanzaProductivityRecord result:', result);
 
+      const runPercentage = totalTime > 0 ? (stateSecondsMap['RUN'] / totalTime) * 100 : 0;
+
       Alert.alert(
         'Ventana Guardada',
-        `CT: ${ctPercentage.toFixed(1)}%\nSSOP: ${ssopPercentage.toFixed(1)}%\nPérdidas: ${perdidasPercentage.toFixed(1)}%\nCT/Unidad: ${cycleTimePerUnit.toFixed(1)}s`,
+        `RUN: ${runPercentage.toFixed(1)}%\nOutput: ${output} piezas\nCT/Unidad: ${cycleTimePerUnit.toFixed(1)}s`,
         [{ text: 'OK', onPress: () => router.replace('/matanza-module-selection') }]
       );
     } catch (error) {
@@ -228,7 +251,7 @@ export default function MatanzaProductivityTimerScreen() {
     );
   };
 
-  const handleStateChange = (newState: MatanzaState) => {
+  const handleStateChange = (newState: WindowState) => {
     const currentTime = 300 - timeLeft;
 
     if (currentState) {
@@ -331,7 +354,7 @@ export default function MatanzaProductivityTimerScreen() {
                 ]}
                 onPress={() => handleStateChange(state)}
               >
-                <Text style={styles.stateButtonText}>{STATE_LABELS[state]}</Text>
+                <Text style={styles.stateButtonText}>{state}</Text>
                 <Text style={styles.stateSeconds}>{stateSeconds[state]}s</Text>
               </TouchableOpacity>
             ))}
@@ -388,7 +411,7 @@ const styles = StyleSheet.create({
   },
   headerValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.light.text,
     textAlign: 'center',
   },
@@ -409,7 +432,7 @@ const styles = StyleSheet.create({
   },
   timerValue: {
     fontSize: 64,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: Colors.light.text,
     marginBottom: 16,
   },
@@ -448,7 +471,7 @@ const styles = StyleSheet.create({
   },
   outputLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.light.text,
     marginBottom: 16,
   },
@@ -468,7 +491,7 @@ const styles = StyleSheet.create({
   },
   outputValue: {
     fontSize: 48,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: Colors.light.text,
     minWidth: 80,
     textAlign: 'center',
@@ -483,7 +506,7 @@ const styles = StyleSheet.create({
   },
   statesTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: '#fff',
     marginBottom: 12,
     paddingHorizontal: 4,
@@ -503,14 +526,14 @@ const styles = StyleSheet.create({
   },
   stateButtonText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: '#fff',
     marginBottom: 4,
     textAlign: 'center',
   },
   stateSeconds: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: '#fff',
   },
   summaryCard: {
@@ -519,7 +542,7 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: Colors.light.text,
     marginBottom: 12,
   },
@@ -534,7 +557,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: Colors.light.text,
   },
   finishButton: {
