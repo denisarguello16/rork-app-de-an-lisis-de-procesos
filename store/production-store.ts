@@ -224,11 +224,14 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
   const loadFromStorage = useCallback(async () => {
     try {
       const storage = getStorage();
+      console.log('🔍 Intentando cargar datos del storage...');
       const stored = await storage.getItem('production-data');
       if (!stored) {
-        console.log('No stored data found');
+        console.log('⚠️ No stored data found');
         return;
       }
+      
+      console.log('📦 Datos encontrados, tamaño:', stored.length, 'caracteres');
       
       if (typeof stored !== 'string') {
         console.error('❌ Stored data is not a string:', typeof stored);
@@ -239,12 +242,31 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       let data;
       try {
         data = JSON.parse(stored);
+        console.log('✅ Datos parseados exitosamente');
       } catch (parseError) {
         console.error('❌ JSON parse error:', parseError);
         console.error('❌ Stored data:', stored.substring(0, 100));
         await storage.removeItem('production-data');
         return;
       }
+      
+      const totalRecords = (data.capacityRecords?.length || 0) + (data.rejectionRecords?.length || 0) + 
+                           (data.setupTimeRecords?.length || 0) + (data.cycleTimeRecords?.length || 0) + 
+                           (data.window5minRecords?.length || 0) + (data.matanzaWindow5minRecords?.length || 0) + 
+                           (data.matanzaProductivityRecords?.length || 0);
+      
+      console.log('📊 Cargando registros:', {
+        inspector: data.inspector?.name,
+        totalRegistros: totalRecords,
+        capacity: data.capacityRecords?.length || 0,
+        rejection: data.rejectionRecords?.length || 0,
+        setup: data.setupTimeRecords?.length || 0,
+        cycleTime: data.cycleTimeRecords?.length || 0,
+        window5min: data.window5minRecords?.length || 0,
+        matanzaUtilization: data.matanzaWindow5minRecords?.length || 0,
+        matanzaProductivity: data.matanzaProductivityRecords?.length || 0,
+        lastSaved: data.lastSaved,
+      });
       
       if (data.inspector) {
         setInspectorState({ ...data.inspector, timestamp: new Date(data.inspector.timestamp) });
@@ -292,6 +314,8 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
           timestamp: new Date(record.timestamp),
         })));
       }
+      
+      console.log('✅ Todos los datos cargados exitosamente');
     } catch (error) {
       console.error('❌ Error loading from storage:', error);
       try {
@@ -321,9 +345,30 @@ export const [ProductionProvider, useProductionStore] = createContextHook(() => 
       matanzaProductivityRecords,
       lastSaved: getNicaraguaTime().toISOString(),
     };
-    storage.setItem('production-data', JSON.stringify(dataToSave)).catch(error => {
-      console.error('❌ Error saving to storage:', error);
+    
+    const totalRecords = capacityRecords.length + rejectionRecords.length + setupTimeRecords.length + 
+                         cycleTimeRecords.length + window5minRecords.length + matanzaWindow5minRecords.length + 
+                         matanzaProductivityRecords.length;
+    
+    console.log('💾 Guardando datos:', {
+      inspector: inspector?.name,
+      totalRegistros: totalRecords,
+      capacity: capacityRecords.length,
+      rejection: rejectionRecords.length,
+      setup: setupTimeRecords.length,
+      cycleTime: cycleTimeRecords.length,
+      window5min: window5minRecords.length,
+      matanzaUtilization: matanzaWindow5minRecords.length,
+      matanzaProductivity: matanzaProductivityRecords.length,
     });
+    
+    storage.setItem('production-data', JSON.stringify(dataToSave))
+      .then(() => {
+        console.log('✅ Datos guardados exitosamente');
+      })
+      .catch(error => {
+        console.error('❌ Error saving to storage:', error);
+      });
   }, [inspector, capacityRecords, rejectionRecords, setupTimeRecords, cycleTimeRecords, window5minRecords, matanzaWindow5minRecords, matanzaProductivityRecords, getStorage]);
 
   return useMemo(() => ({
