@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function MatanzaUtilizationConfigScreen() {
   const insets = useSafeAreaInsets();
   const { inspector } = useProductionStore();
-  const [stage, setStage] = useState<string>('Recepción del ganado');
+  const [stage, setStage] = useState<string>('Aturdimiento');
   const [employeeCode, setEmployeeCode] = useState<string>('');
   
   const employeeName = employeeCode ? EMPLOYEE_CATALOG[employeeCode] : null;
@@ -70,39 +70,42 @@ export default function MatanzaUtilizationConfigScreen() {
             value={stage}
             onSelect={(value) => setStage(value)}
             options={[
-              { key: 'Recepción del ganado', label: 'Recepción del ganado' },
               { key: 'Aturdimiento', label: 'Aturdimiento' },
+              { key: 'Izado', label: 'Izado' },
               { key: 'Degüelle', label: 'Degüelle' },
-              { key: 'Corte de cuerno y orejas', label: 'Corte de cuerno y orejas' },
-              { key: 'Desollado de cabezas', label: 'Desollado de cabezas' },
-              { key: 'Corte de patas delanteras', label: 'Corte de patas delanteras' },
-              { key: 'Ligado de esófago', label: 'Ligado de esófago' },
-              { key: 'Pelado de cabezas', label: 'Pelado de cabezas' },
-              { key: 'Desollado, ligado de recto y vejiga urinaria', label: 'Desollado, ligado de recto y vejiga urinaria' },
-              { key: 'Separación de cabezas y embolsado de esófago y tráquea', label: 'Separación de cabezas y embolsado de esófago y tráquea' },
-              { key: 'Desollado de cuarto posterior, corte de patas traseras', label: 'Desollado de cuarto posterior, corte de patas traseras' },
-              { key: 'Desollado flanco', label: 'Desollado flanco' },
-              { key: 'Separación de ubres', label: 'Separación de ubres' },
-              { key: 'Desollado cuarto delantero', label: 'Desollado cuarto delantero' },
-              { key: 'Desollado de cola', label: 'Desollado de cola' },
-              { key: 'Desollado en región toracolumbar', label: 'Desollado en región toracolumbar' },
-              { key: 'Chequeo de pecho y remoción de raíz de lengua', label: 'Chequeo de pecho y remoción de raíz de lengua' },
+              { key: 'Corte de Cachos y Orejas', label: 'Corte de Cachos y Orejas' },
+              { key: 'Desollado de Cabezas', label: 'Desollado de Cabezas' },
+              { key: 'Corte de Patas Delanteras', label: 'Corte de Patas Delanteras' },
+              { key: 'Ligado de Esófago', label: 'Ligado de Esófago' },
+              { key: 'Separación de Cabezas', label: 'Separación de Cabezas' },
+              { key: 'Embolsado de Esófago y Tráquea', label: 'Embolsado de Esófago y Tráquea' },
+              { key: 'Ligado de Recto y Vejiga', label: 'Ligado de Recto y Vejiga' },
+              { key: 'Corte de Patas Traseras', label: 'Corte de Patas Traseras' },
+              { key: 'Desollado Rectal', label: 'Desollado Rectal' },
+              { key: 'Desollado de Cuarto Trasero y Corte de Patas Traseras', label: 'Desollado de Cuarto Trasero y Corte de Patas Traseras' },
+              { key: 'Desollado de Flanco', label: 'Desollado de Flanco' },
+              { key: 'Desollado de Cola', label: 'Desollado de Cola' },
+              { key: 'Desollado Región Toracolumbar', label: 'Desollado Región Toracolumbar' },
+              { key: 'Desollado Cuarto Delantero', label: 'Desollado Cuarto Delantero' },
+              { key: 'Chequeo de Pecho', label: 'Chequeo de Pecho' },
               { key: 'Descuerado', label: 'Descuerado' },
-              { key: 'Corte de esternón', label: 'Corte de esternón' },
-              { key: 'Separador de tráquea', label: 'Separador de tráquea' },
+              { key: 'Corte de Esternón', label: 'Corte de Esternón' },
+              { key: 'Limpieza de Cuello', label: 'Limpieza de Cuello' },
               { key: 'Evisceración', label: 'Evisceración' },
-              { key: 'División de canales', label: 'División de canales' },
-              { key: 'Remoción de médula espinal', label: 'Remoción de médula espinal' },
-              { key: 'Limpieza de entraña', label: 'Limpieza de entraña' },
-              { key: 'Desebado y chequeo de defectos cuarto posterior', label: 'Desebado y chequeo de defectos cuarto posterior' },
-              { key: 'Desebado y chequeo de defectos cuarto anterior', label: 'Desebado y chequeo de defectos cuarto anterior' },
-              { key: 'Chequeo de cogote', label: 'Chequeo de cogote' },
-              { key: 'Chequeo de lomo', label: 'Chequeo de lomo' },
-              { key: 'Lavado de canales', label: 'Lavado de canales' },
-              { key: 'Pre deshuese de pierna', label: 'Pre deshuese de pierna' },
-              { key: 'Intervención antibacteriana con agua caliente', label: 'Intervención antibacteriana con agua caliente' },
-              { key: 'Numeración de canales', label: 'Numeración de canales' },
-              { key: 'Intervención antibacteriana', label: 'Intervención antibacteriana' },
+              { key: 'División', label: 'División' },
+              { key: 'Remoción de Médula Espinal', label: 'Remoción de Médula Espinal' },
+              { key: 'Limpieza de Entraña', label: 'Limpieza de Entraña' },
+              { key: 'Desebado y Chequeo Cuarto Trasero', label: 'Desebado y Chequeo Cuarto Trasero' },
+              { key: 'Desebado y Chequeo Cuarto Delantero', label: 'Desebado y Chequeo Cuarto Delantero' },
+              { key: 'Pre Deshuese de Chuck Roll', label: 'Pre Deshuese de Chuck Roll' },
+              { key: 'Chequeo de Cogote', label: 'Chequeo de Cogote' },
+              { key: 'Chequeo de Lomo', label: 'Chequeo de Lomo' },
+              { key: 'Lavado de Canales', label: 'Lavado de Canales' },
+              { key: 'Pre Deshuese de Pierna', label: 'Pre Deshuese de Pierna' },
+              { key: 'Intervención con Agua Caliente', label: 'Intervención con Agua Caliente' },
+              { key: 'Numeración de Canales', label: 'Numeración de Canales' },
+              { key: 'Intervención Antibacteriana Ac. Láctico', label: 'Intervención Antibacteriana Ac. Láctico' },
+              { key: 'Separación de Ubres', label: 'Separación de Ubres' },
             ]}
           />
 
