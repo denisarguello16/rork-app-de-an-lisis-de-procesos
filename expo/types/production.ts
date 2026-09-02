@@ -156,6 +156,8 @@ export interface MatanzaProductivityData {
   inspector: string;
   timestamp: Date;
   stage: string;
+  /** Cantidad de operarios; se envía como employeeCode para usar la misma columna del sheet */
+  employeeCode: string;
   output: number;
   events: MatanzaProductivityStateEvent[];
   runSeconds: number;

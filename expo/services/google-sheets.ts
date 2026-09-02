@@ -204,6 +204,7 @@ export const saveMatanzaProductivityDataToSheets = async (data: MatanzaProductiv
       inspector: data.inspector,
       timestamp: formatForGoogleSheets(data.timestamp),
       stage: data.stage,
+      employeeCode: data.employeeCode,
       output: data.output,
       runSeconds: data.runSeconds,
       starvedSeconds: data.starvedSeconds,

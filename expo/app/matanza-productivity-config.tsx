@@ -5,6 +5,7 @@ import { useProductionStore } from '@/store/production-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Picker } from '@/components/ui/Picker';
+import { Input } from '@/components/ui/Input';
 import { Colors } from '@/constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,9 +13,10 @@ export default function MatanzaProductivityConfigScreen() {
   const insets = useSafeAreaInsets();
   const { inspector } = useProductionStore();
   const [stage, setStage] = useState<string>('Aturdimiento');
+  const [operatorCount, setOperatorCount] = useState<string>('');
 
   const handleStart = () => {
-    if (!stage.trim()) {
+    if (!stage.trim() || !operatorCount.trim()) {
       return;
     }
     
@@ -22,11 +24,15 @@ export default function MatanzaProductivityConfigScreen() {
       pathname: '/matanza-productivity-timer',
       params: {
         stage: stage.trim(),
+        operatorCount: operatorCount.trim(),
       },
     });
   };
 
-  const isValid = stage.trim().length > 0;
+  const isValid =
+    stage.trim().length > 0 &&
+    /^\d+$/.test(operatorCount) &&
+    parseInt(operatorCount, 10) >= 1;
 
   return (
     <View style={styles.container}>
@@ -101,6 +107,20 @@ export default function MatanzaProductivityConfigScreen() {
               { key: 'Intervención Antibacteriana Ac. Láctico', label: 'Intervención Antibacteriana Ac. Láctico' },
               { key: 'Separación de Ubres', label: 'Separación de Ubres' },
             ]}
+          />
+
+          <Input
+            label="Cantidad de Operarios"
+            value={operatorCount}
+            onChangeText={(text) => {
+              const numericOnly = text.replace(/[^0-9]/g, '');
+              if (numericOnly.length <= 3) {
+                setOperatorCount(numericOnly);
+              }
+            }}
+            placeholder="Ingrese cantidad"
+            keyboardType="numeric"
+            maxLength={3}
           />
 
           <View style={styles.infoBox}>
