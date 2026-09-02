@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Picker } from '@/components/ui/Picker';
 import { Input } from '@/components/ui/Input';
 import { Colors } from '@/constants/colors';
+import { MATANZA_STAGES } from '@/constants/production';
 import { EMPLOYEE_CATALOG } from '@/constants/employees';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -69,44 +70,7 @@ export default function MatanzaUtilizationConfigScreen() {
             label="Etapa del Proceso"
             value={stage}
             onSelect={(value) => setStage(value)}
-            options={[
-              { key: 'Aturdimiento', label: 'Aturdimiento' },
-              { key: 'Izado', label: 'Izado' },
-              { key: 'Degüelle', label: 'Degüelle' },
-              { key: 'Corte de Cachos y Orejas', label: 'Corte de Cachos y Orejas' },
-              { key: 'Desollado de Cabezas', label: 'Desollado de Cabezas' },
-              { key: 'Corte de Patas Delanteras', label: 'Corte de Patas Delanteras' },
-              { key: 'Ligado de Esófago', label: 'Ligado de Esófago' },
-              { key: 'Separación de Cabezas', label: 'Separación de Cabezas' },
-              { key: 'Embolsado de Esófago y Tráquea', label: 'Embolsado de Esófago y Tráquea' },
-              { key: 'Ligado de Recto y Vejiga', label: 'Ligado de Recto y Vejiga' },
-              { key: 'Corte de Patas Traseras', label: 'Corte de Patas Traseras' },
-              { key: 'Desollado Rectal', label: 'Desollado Rectal' },
-              { key: 'Desollado de Cuarto Trasero y Corte de Patas Traseras', label: 'Desollado de Cuarto Trasero y Corte de Patas Traseras' },
-              { key: 'Desollado de Flanco', label: 'Desollado de Flanco' },
-              { key: 'Desollado de Cola', label: 'Desollado de Cola' },
-              { key: 'Desollado Región Toracolumbar', label: 'Desollado Región Toracolumbar' },
-              { key: 'Desollado Cuarto Delantero', label: 'Desollado Cuarto Delantero' },
-              { key: 'Chequeo de Pecho', label: 'Chequeo de Pecho' },
-              { key: 'Descuerado', label: 'Descuerado' },
-              { key: 'Corte de Esternón', label: 'Corte de Esternón' },
-              { key: 'Limpieza de Cuello', label: 'Limpieza de Cuello' },
-              { key: 'Evisceración', label: 'Evisceración' },
-              { key: 'División', label: 'División' },
-              { key: 'Remoción de Médula Espinal', label: 'Remoción de Médula Espinal' },
-              { key: 'Limpieza de Entraña', label: 'Limpieza de Entraña' },
-              { key: 'Desebado y Chequeo Cuarto Trasero', label: 'Desebado y Chequeo Cuarto Trasero' },
-              { key: 'Desebado y Chequeo Cuarto Delantero', label: 'Desebado y Chequeo Cuarto Delantero' },
-              { key: 'Pre Deshuese de Chuck Roll', label: 'Pre Deshuese de Chuck Roll' },
-              { key: 'Chequeo de Cogote', label: 'Chequeo de Cogote' },
-              { key: 'Chequeo de Lomo', label: 'Chequeo de Lomo' },
-              { key: 'Lavado de Canales', label: 'Lavado de Canales' },
-              { key: 'Pre Deshuese de Pierna', label: 'Pre Deshuese de Pierna' },
-              { key: 'Intervención con Agua Caliente', label: 'Intervención con Agua Caliente' },
-              { key: 'Numeración de Canales', label: 'Numeración de Canales' },
-              { key: 'Intervención Antibacteriana Ac. Láctico', label: 'Intervención Antibacteriana Ac. Láctico' },
-              { key: 'Separación de Ubres', label: 'Separación de Ubres' },
-            ]}
+            options={MATANZA_STAGES}
           />
 
           <Input

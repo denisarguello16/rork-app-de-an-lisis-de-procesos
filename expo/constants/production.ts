@@ -17,6 +17,53 @@ export const EVENT_TYPES = [
   { key: 'salida_material_empaque', label: 'Salida por Material de Empaque' }
 ] as const;
 
+export const MATANZA_STAGES: { key: string; label: string }[] = [
+  { key: 'Aturdimiento', label: 'Aturdimiento' },
+  { key: 'Izado', label: 'Izado' },
+  { key: 'Desollado de Cuello', label: 'Desollado de Cuello' },
+  { key: 'Corte de Cachos y Orejas', label: 'Corte de Cachos y Orejas' },
+  { key: 'Desollado de Cabezas', label: 'Desollado de Cabezas' },
+  { key: 'Corte de Patas Delanteras', label: 'Corte de Patas Delanteras' },
+  { key: 'Pelado de cabezas', label: 'Pelado de cabezas' },
+  { key: 'Separación Hueso Atlas', label: 'Separación Hueso Atlas' },
+  { key: 'Ligado de Esófago', label: 'Ligado de Esófago' },
+  { key: 'Separación de cabezas y embolsado de esófago y tráquea', label: 'Separación de cabezas y embolsado de esófago y tráquea' },
+  { key: 'Desollado de Recto y Ligado de recto y vejiga urinaria', label: 'Desollado de Recto y Ligado de recto y vejiga urinaria' },
+  { key: 'Rayado de nalga y cavidad abdominal', label: 'Rayado de nalga y cavidad abdominal' },
+  { key: 'Desollado de Pierna (Jarvis)', label: 'Desollado de Pierna (Jarvis)' },
+  { key: 'Desollado de Pata Trasera Derecha', label: 'Desollado de Pata Trasera Derecha' },
+  { key: 'Corte de Patas Traseras', label: 'Corte de Patas Traseras' },
+  { key: 'Desollado de Pata Trasera Izquierda', label: 'Desollado de Pata Trasera Izquierda' },
+  { key: 'Finalización Desollado Cuarto Trasero', label: 'Finalización Desollado Cuarto Trasero' },
+  { key: 'Pre-Desollado Región Toracolumbar (con cuchillo y Jarvis)', label: 'Pre-Desollado Región Toracolumbar (con cuchillo y Jarvis)' },
+  { key: 'Desollado de Región Toracolumbar Superior', label: 'Desollado de Región Toracolumbar Superior' },
+  { key: 'Desollado de Región Toracolumbar Inferior', label: 'Desollado de Región Toracolumbar Inferior' },
+  { key: 'Desollado de Flanco Superior', label: 'Desollado de Flanco Superior' },
+  { key: 'Desollado de Flanco Inferior', label: 'Desollado de Flanco Inferior' },
+  { key: 'Desollado de Pata Delantera Derecha', label: 'Desollado de Pata Delantera Derecha' },
+  { key: 'Desollado de Pata Delantera Izquierda', label: 'Desollado de Pata Delantera Izquierda' },
+  { key: 'Limpieza y Colocación de Ficha de Numeración', label: 'Limpieza y Colocación de Ficha de Numeración' },
+  { key: 'Descuerado', label: 'Descuerado' },
+  { key: 'Rayado de Pecho y Corte de Esternón', label: 'Rayado de Pecho y Corte de Esternón' },
+  { key: 'Limpieza de Cuello', label: 'Limpieza de Cuello' },
+  { key: 'Evisceración (por turnos)', label: 'Evisceración (por turnos)' },
+  { key: 'División de Canales', label: 'División de Canales' },
+  { key: 'Remoción de Médula Espinal', label: 'Remoción de Médula Espinal' },
+  { key: 'Limpieza de Entraña', label: 'Limpieza de Entraña' },
+  { key: 'Chequeo y Desebado de Cuarto Trasero', label: 'Chequeo y Desebado de Cuarto Trasero' },
+  { key: 'Chequeo y Desebado de Cuarto Delantero', label: 'Chequeo y Desebado de Cuarto Delantero' },
+  { key: 'Chequeo de Cogote', label: 'Chequeo de Cogote' },
+  { key: 'Pre-Deshuese de Chuck Roll', label: 'Pre-Deshuese de Chuck Roll' },
+  { key: 'Chequeo de Lomo', label: 'Chequeo de Lomo' },
+  { key: 'Pre-Deshuese de Paleta', label: 'Pre-Deshuese de Paleta' },
+  { key: 'Lavado de Canales (Cuarto Trasero)', label: 'Lavado de Canales (Cuarto Trasero)' },
+  { key: 'Lavado de Canales (Cuarto Delantero)', label: 'Lavado de Canales (Cuarto Delantero)' },
+  { key: 'Pre-Deshuese de Pierna', label: 'Pre-Deshuese de Pierna' },
+  { key: 'Numeración', label: 'Numeración' },
+  { key: 'Intervención Antibacteriana con Agua Caliente', label: 'Intervención Antibacteriana con Agua Caliente' },
+  { key: 'Intervención con Ácido Láctico', label: 'Intervención con Ácido Láctico' },
+];
+
 // OBSOLETE: Product catalog moved to PRODUCT_NAMES in constants/product-names.ts
 // This large catalog is no longer used in the app
 /* export const PRODUCT_CATALOG: ProductCatalog[] = [
