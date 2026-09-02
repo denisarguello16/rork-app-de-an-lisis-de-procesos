@@ -1,0 +1,12 @@
+diff --git a/lib/module/index.js b/lib/module/index.js
+index 1c8120907fb6387b67c9e9a6e385402531ae51bb..59dd92ba10b6fa1cdc4c721eee1f1e35c688dc81 100644
+--- a/lib/module/index.js
++++ b/lib/module/index.js
+@@ -1,6 +1,5 @@
+ "use strict";
+ 
+-export * from "./agent.js";
+ export * from "./integrations.js";
+ export * from "./analytics.js";
+ //# sourceMappingURL=index.js.map
+\ No newline at end of file
