@@ -156,7 +156,6 @@ export interface MatanzaProductivityData {
   inspector: string;
   timestamp: Date;
   stage: string;
-  employeeCode: string;
   output: number;
   events: MatanzaProductivityStateEvent[];
   runSeconds: number;

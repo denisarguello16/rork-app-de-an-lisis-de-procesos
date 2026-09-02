@@ -9,7 +9,6 @@ import { Colors } from '@/constants/colors';
 import { WindowState } from '@/types/production';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getNicaraguaTime } from '@/constants/timezone';
-import { EMPLOYEE_CATALOG } from '@/constants/employees';
 
 const MATANZA_STATES: WindowState[] = [
   'RUN',
@@ -37,7 +36,7 @@ const STATE_COLORS: Record<WindowState, string> = {
 
 export default function MatanzaProductivityTimerScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ stage: string; employeeCode: string }>();
+  const params = useLocalSearchParams<{ stage: string }>();
   const { inspector, addMatanzaProductivityRecord } = useProductionStore();
 
   const [timeLeft, setTimeLeft] = useState<number>(300);
@@ -48,8 +47,6 @@ export default function MatanzaProductivityTimerScreen() {
   const [stateStartTime, setStateStartTime] = useState<number>(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const employeeName = params.employeeCode ? EMPLOYEE_CATALOG[params.employeeCode] : 'Desconocido';
 
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
@@ -172,7 +169,6 @@ export default function MatanzaProductivityTimerScreen() {
       inspector: inspector.name,
       timestamp: getNicaraguaTime(),
       stage: params.stage || '',
-      employeeCode: params.employeeCode || '',
       output,
       runSeconds: stateSecondsMap['RUN'],
       starvedSeconds: stateSecondsMap['STARVED'],
@@ -297,11 +293,6 @@ export default function MatanzaProductivityTimerScreen() {
             <Text style={styles.headerLabel}>Etapa</Text>
             <Text style={styles.headerValue}>{params.stage}</Text>
           </View>
-          <View style={styles.headerDivider} />
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerLabel}>Empleado</Text>
-            <Text style={styles.headerValue}>{employeeName}</Text>
-          </View>
         </Card>
 
         <Card style={styles.timerCard}>
@@ -414,11 +405,6 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.light.text,
     textAlign: 'center',
-  },
-  headerDivider: {
-    width: 1,
-    backgroundColor: Colors.light.border,
-    marginHorizontal: 8,
   },
   timerCard: {
     padding: 24,
