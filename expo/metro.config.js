@@ -6,25 +6,31 @@ const { withRorkMetro } = require("@rork-ai/toolkit-sdk/metro");
  * This sandbox cannot run Watchman (it refuses to start here: "Watchman is
  * running at a lower than normal priority... refusing to start"), so Metro
  * always falls back to Node's raw per-directory `fs.watch()` crawler/watcher
- * (FallbackWatcher). That fallback opens one OS inotify watch handle PER
- * DIRECTORY it crawls, and this project's node_modules tree has tens of
- * thousands of directories (deeply nested transitive deps like @babel/*,
- * @typescript-eslint/*, etc. each carrying their own nested node_modules).
- * The sandbox's default inotify limits are far too low for that, so the dev
- * server used to crash with EINVAL/ENOSPC on an essentially random directory
- * once the OS-wide watch count was exhausted.
+ * (FallbackWatcher). On Linux, every single `fs.watch()` call opens its OWN
+ * inotify INSTANCE (not just a watch) — and this project's node_modules tree
+ * has over 10,000 directories (deeply nested transitive deps like
+ * @babel/*, @typescript-eslint/*, etc. each carrying their own nested
+ * node_modules). The sandbox's default `fs.inotify.max_user_instances` is
+ * only 128, so the dev server crashed almost immediately with ENOSPC/EINVAL
+ * once past the first ~128 directories, well before the blockList exclusions
+ * below could bring the count down far enough on their own.
  *
- * Raising the limits via `sysctl`/`/proc` only lasts until the sandbox is
- * restarted, so it must be redone on every Metro startup rather than once by
- * hand. Doing it here (synchronously, before Metro builds its file map) makes
- * it self-healing: every time the dev server boots, it re-raises the limits
- * itself. This is a container-local, best-effort tweak (never touches user
- * app code) and is safely skipped if the sandbox ever restricts sudo.
+ * Raising the limit via `sysctl`/`/proc` only lasts until this sandbox
+ * container is restarted, so it must be redone on every Metro startup rather
+ * than once by hand. Doing it here (synchronously, before Metro builds its
+ * file map) makes it self-healing: every time the dev server boots, it
+ * re-raises the limits itself, right inside the same process that will
+ * actually call fs.watch(). Verified directly: requiring this file bumps
+ * /proc/sys/fs/inotify/max_user_instances immediately in the current
+ * process's view of the kernel (not just a subshell), so Metro's own watcher
+ * sees the raised limit. This is a container-local, best-effort tweak (never
+ * touches user app code) and is safely skipped if sudo/proc ever become
+ * unavailable.
  */
 function ensureInotifyLimits() {
   try {
     execSync(
-      "sudo sh -c 'echo 1048576 > /proc/sys/fs/inotify/max_user_watches; echo 8192 > /proc/sys/fs/inotify/max_user_instances'",
+      "sudo sh -c 'echo 1048576 > /proc/sys/fs/inotify/max_user_watches; echo 1048576 > /proc/sys/fs/inotify/max_user_instances'",
       { stdio: "ignore" },
     );
   } catch {
@@ -42,8 +48,8 @@ const config = getDefaultConfig(__dirname);
  * native build trees or build-time-only tooling from Metro's crawl/watch and
  * resolution (via `resolver.blockList`, which metro also reuses as the file
  * watcher's `ignorePattern` — see metro/src/node-haste/DependencyGraph/createFileMap.js).
- * This further shrinks the directory count so we stay under the limit even
- * if the sysctl bump above is ever unavailable.
+ * This further shrinks the directory count so we stay comfortably under the
+ * limit even if the sysctl bump above is ever unavailable.
  *
  * IMPORTANT: only exclude directories that are genuinely native-only. Many
  * packages (e.g. react-native-screens, expo-symbols) legitimately ship their
