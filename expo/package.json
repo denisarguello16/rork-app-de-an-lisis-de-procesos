@@ -56,6 +56,7 @@
   },
   "private": true,
   "patchedDependencies": {
-    "@rork-ai/toolkit-sdk@0.2.54": "patches/@rork-ai%2Ftoolkit-sdk@0.2.54.patch"
+    "@rork-ai/toolkit-sdk@0.2.54": "patches/@rork-ai%2Ftoolkit-sdk@0.2.54.patch",
+    "@expo/metro-file-map@57.0.2": "patches/@expo%2Fmetro-file-map@57.0.2.patch"
   }
 }
